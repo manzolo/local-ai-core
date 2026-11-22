@@ -1,6 +1,6 @@
 # Stato di local-ai-core
 
-Aggiornato: 2026-11-22 (sessione 1). **Fasi 1 e 2 completate e collaudate. Prossima: fase 3, trascrizione e parlanti.**
+Aggiornato: 2026-11-22 (sessione 1). **Fasi 1, 2 e 3 completate e collaudate. Prossima: fase 4, immagini (ComfyUI).**
 Repo su GitHub `manzolo/local-ai-core`, **pubblico dal 2026-11-22** (deciso dal maintainer), CI verde.
 Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
 tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
@@ -20,11 +20,19 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
   testo, scansione con OCR, cifra alterata colta, scansione senza OCR rifiutata, PDF rotto). Catena
   completa provata: scansione storta → Markdown con la tabella giusta → libreria → domanda → risposta
   che cita `library/…` → rimozione. Quick start passo 9 rifatto da un clone pulito.
-- **Test su CPU**: 34 test con Ollama e Docling finti, lint pulito, 12 mutazioni tutte colte.
+- **Trascrizione e parlanti (fase 3)**, profili `transcribe` e `speakers`: faster-whisper large-v3 e
+  SpeechBrain ECAPA sul vero, collaudi interni 5/5 e 4/4 (frase nota con somiglianza 1,00; dialogo a
+  due voci 121212; una voce resta una; testo diverso e file non audio colti). Audio di prova sintetico
+  con Piper e due voci di pubblico dominio (`scripts/make-audio-fixtures.sh`).
+- **Prova da zero completa** (2026-11-22): 0 volumi, clone pulito, quick start passi 3, 9, 10: Ollama
+  scarica i modelli e indicizza in 134 s; collaudo con tutti i profili superato in 243 s, scaricando
+  anche Docling, Whisper (2,9 GB) ed ECAPA.
+- **Test su CPU**: 47 test con Ollama, Docling, Whisper ed ECAPA finti (il raggruppamento dei parlanti
+  gira col codice scikit-learn vero), lint pulito, 17 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
-- Gateway e worker leggeri: immagini da ~140 MB; documenti ~7 GB (PyTorch con CUDA), modelli ~540 MB in
-  un volume. Utente non root, nessuna porta dei worker pubblicata.
+- Gateway e worker leggeri: immagini da ~140 MB; documenti ~7 GB e parlanti ~6,6 GB (PyTorch con CUDA
+  come primo strato identico, salvato una volta sola); trascrittore ~3,4 GB (CTranslate2, niente torch). Utente non root, nessuna porta dei worker pubblicata.
 
 ## Architettura (com'è adesso)
 
@@ -43,6 +51,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   dopo `IDLE_UNLOAD_MINUTES`; i file caricati stanno nel volume `uploads` e si cancellano a fine job; il
   Markdown va nel volume `library` solo se richiesto. Prima di un worker GPU il gateway chiede a Ollama
   di liberare i modelli se la VRAM libera non basta.
+- **transcriber** (profilo `transcribe`) e **speakers** (profilo `speakers`): due worker; il gateway
+  li concatena nello stesso job di `/v1/transcribe` e compone testo, SRT e WebVTT. `expect` confronta la
+  trascrizione con un testo atteso (somiglianza per parole, soglia 0,85).
 - **search + ask** in un solo worker leggero: porting ripensato di `search.py` e `ask.py`
   (note + libreria, la libreria col prefisso `library/`; pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
   controllate, «non trovo» senza chiamare il modello). Prompt in inglese, risposta nella lingua della
@@ -75,12 +86,13 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 
 - Licenze: verificate una per una il 2026-11-22 (`docs/licenses.md`, `docs/licenses-python.md` generato
   da `scripts/licenses.py`). Da rifare a ogni modello o dipendenza nuova.
-- Topic `local-ai`, riga in `local-ai-lab`, scheda su manzolo-home: solo col sì del maintainer.
+- Scheda su manzolo-home: da proporre, non toccare (altro progetto).
 
 ## Scelte aperte
 
-1. `documents → search → ask` sostituisce `ollapdf` e `PDF-Chatbot-Ollama-Langchain-Docker` o li
-   affianca? Domanda posta al maintainer a fine fase 2.
+1. Deciso col maintainer il 2026-11-22: PDF-Chatbot-Ollama-Langchain-Docker **archiviato**, sostituito
+   da local-ai-core (nota in testa al suo README); **ollapdf affiancato** (chat Streamlit + LangChain),
+   da rivalutare dopo qualche settimana d'uso. README di local-ai-lab aggiornato, topic `local-ai` messo.
 2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova: fasi 4 e 5.
 
 ## Note e trappole di questa sessione
@@ -107,13 +119,18 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - `gh` 2.46 non ha `--accept-visibility-change-consequences`: la visibilità si cambia con
   `gh api -X PATCH repos/OWNER/REPO -f visibility=public`.
 - In modalità famiglia `down -v` non cancella il volume dell'Ollama interno (il servizio è spento).
+- **zsh non spezza le variabili non quotate**: `ALL="--profile a --profile b"; docker compose $ALL down`
+  passa un solo argomento e fallisce. Nei comandi lunghi scrivere i profili per esteso e leggere l'output
+  invece di contarlo con `grep -c`: una prova «da zero» è sembrata riuscita su container vecchi.
+- Lo strato PyTorch è condiviso solo se le righe del Dockerfile fino a `pip install -r torch.txt` sono
+  identiche in documents e speakers: l'`ARG DEBIAN_SNAPSHOT` va dopo.
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Fase 3: worker `transcriber` (faster-whisper 1.2.1, large-v3, audio decodificato con ffmpeg) e
-`speakers` (SpeechBrain 1.1.2 ECAPA, soglia 0,55) nel profilo `transcribe`; `POST /v1/transcribe` con
-testo, srt, vtt e `speakers=true`; avanzamento vero via SSE. Audio di prova sintetico **non** XTTS
-(licenza): da scegliere una voce con licenza libera. Sezione `docs/services/transcribe.md`, passo nel
-quick start, schermate.
+Fase 4: ComfyUI v0.46.2 come worker (profilo `image`) dietro un adattatore con lo stesso contratto;
+workflow JSON nel repo; `/v1/images/generate` (SDXL + LoRA Lightning a 4 passi), `/upscale` (RealESRGAN
+×2/×4), `/cutout` (BiRefNet, maschera invertita per JoinImageWithAlpha). **Prima di scegliere il
+checkpoint di default verificare le licenze** (Juggernaut XL, SDXL base, LoRA Lightning, RealESRGAN,
+BiRefNet). Qui la coda GPU lavora sul serio: ComfyUI ~8 GB non convive con l'LLM caricato.
