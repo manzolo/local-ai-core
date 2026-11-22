@@ -39,7 +39,14 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
   nota inventata con somiglianza 1,00 e lascia vuota la pagina bianca; XTTS-v2 parla con le 58 voci pronte,
   numeri in lettere, ogni pezzo riascoltato da Whisper (somiglianza 1,00) e l'avviso di licenza dentro
   ogni file (WAV, MP3, OGG). Collaudo completo con tutti gli 8 servizi superato.
-- **Test su CPU**: 91 test, 34 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
+- **Barra di stato** (2026-11-22): mostra anche i worker con un modello caricato, con la loro stima
+  (`~`), oltre ai modelli di Ollama misurati; l'utilizzo GPU è etichettato «carico»; la pagina si
+  aggiorna appena un lavoro finisce. Lo «0%» che si vedeva durante la prova da zero era il carico di
+  calcolo mentre si scaricavano i modelli (rete, non GPU).
+- **Prova da zero della fase 5** (commit `9c1081a`): 0 volumi, clone pulito, passi 3 e 12, collaudo
+  superato in 747 s scaricando anche qwen3-vl. La prima volta aveva trovato la scrittura a mano data per
+  «modello mancante» su un'installazione nuova: corretto (`pulls_model_on_first_use`).
+- **Test su CPU**: 93 test, 35 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
   i workflow con Pillow seguendo le regole dei nodi veri), lint pulito, 26 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
@@ -173,13 +180,13 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   finanziati con fondi pubblici e ogni uso da cui derivi un pagamento: per lavoro non va usata.
 - Nella prova delle mutazioni, una riga con `\b` scritta in Python finiva doppia nello script: si
   controlla sempre che la mutazione si applichi (lo script lo segnala con «?»).
+- La memoria per processo non si legge da dentro un container (`nvidia-smi` non sa a quale container
+  appartiene un processo): i worker dichiarano se hanno un modello caricato e la loro stima.
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Tutti i servizi del brief ci sono. Restano, in ordine di utilità:
-1. la barra di stato mostra solo i modelli di Ollama: aggiungere quelli dei worker (XTTS, Whisper,
-   ComfyUI…), che oggi tengono VRAM senza comparire («In memory: nothing» con 7 GB occupati);
-2. scheda su manzolo-home: da proporre al maintainer, non toccare;
-3. rivalutare ollapdf dopo qualche settimana d'uso (affiancato, deciso il 2026-11-22).
+Tutti i servizi del brief ci sono. Restano:
+1. scheda su manzolo-home: da proporre al maintainer, non toccare;
+2. rivalutare ollapdf dopo qualche settimana d'uso (affiancato, deciso il 2026-11-22).

@@ -148,7 +148,7 @@ curl -s -X POST 'http://localhost:8090/v1/speak?wait=true' -H 'Content-Type: app
 
 | Call | What it tells you |
 |---|---|
-| `GET /v1/status` | GPU name and VRAM, models in memory, queue, startup phase |
+| `GET /v1/status` | GPU name, VRAM and load; Ollama's models in memory; the workers holding a model (`workers`, with an estimate); queue; startup phase |
 | `GET /v1/services` | every service: state, model, VRAM estimated and in use, license, last test |
 | `POST /v1/services/{name}/test` | runs the built-in test of a service (job: follow its `check` events) |
 | `GET /v1/jobs` | recent jobs, newest first |

@@ -173,6 +173,20 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
             raise HTTPException(502, job.error)
         return JSONResponse(job.public())
 
+    async def loaded_workers():
+        """The GPU workers holding a model right now, with their own VRAM estimate. Measured per process it
+        cannot be: from inside a container nvidia-smi does not say which container a process belongs to."""
+        async def one(w):
+            try:
+                info = await asyncio.wait_for(w.info(), 3)
+            except Exception:  # noqa: BLE001 — off or restarting: holds nothing
+                return []
+            return [{"worker": w.name, "service": s["name"], "title": s.get("title", s["name"]),
+                     "model": s.get("model"), "vram_gb_estimate": s.get("vram_gb")}
+                    for s in info.get("services", []) if s.get("ollama") is False and s.get("loaded")]
+        found = await asyncio.gather(*(one(w) for w in app.state.workers.values()))
+        return [x for group in found for x in group]
+
     async def worker_for(service):
         """The worker that offers a service; asks the workers again when it is not known yet."""
         for attempt in range(2):
@@ -202,6 +216,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         except Exception:  # noqa: BLE001 — status reports, it does not fail
             pass
         return {"version": VERSION, "startup": app.state.boot, "gpu": await gpu_status(), "ollama": ollama,
+                "workers": await loaded_workers(),
                 "queue": app.state.jobs.queue(), "auth": bool(settings.api_key),
                 "models": {"llm": settings.llm_model, "embeddings": settings.embed_model}}
 

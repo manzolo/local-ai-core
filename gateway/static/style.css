@@ -73,6 +73,7 @@ h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: 
 .stat { background: var(--surface); padding: 10px 14px; min-width: 0; }
 .stat .k { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .stat .v { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#st-loaded { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font-size: .92rem; }
 .sub { color: var(--muted); font-size: .85rem; }
 .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 6px 0 2px; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
@@ -89,7 +90,7 @@ h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: 
 @keyframes spin { to { transform: rotate(1turn); } }
 
 .tabs { display: flex; gap: 4px; margin: 20px 0 12px; border-bottom: 1px solid var(--line); overflow-x: auto;
-  scrollbar-width: thin; }
+  overflow-y: hidden; scrollbar-width: thin; }
 .tab { flex: none; }
 .tab {
   font: inherit; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);

@@ -11,8 +11,11 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
 
 ## What is on the page
 
-- **Status bar**: the GPU and its VRAM, the models Ollama holds in memory right now, the job queue, the
-  engine. It refreshes every 3 seconds.
+- **Status bar**: the GPU, its VRAM in use and its compute load right now (0% while models download: that
+  is network, not GPU work); what holds the VRAM: Ollama's models with the memory Ollama measures, and the
+  workers with a model loaded (Whisper, XTTS, ComfyUI…) with their own estimate, marked `~` because from
+  inside a container the memory of each process cannot be told apart; the job queue; the engine. It
+  refreshes every 3 seconds.
 - **Ask**: a question about your notes. The answer streams as it is written; each `[n]` links to its
   excerpt below, and the cited excerpts are highlighted. A citation that matches no excerpt shows in red
   with a warning.

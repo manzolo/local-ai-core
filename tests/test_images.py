@@ -276,3 +276,25 @@ def test_a_service_test_makes_room_on_the_gpu_first(fake, search_worker, image_w
     with TestClient(app) as c:
         r = c.post("/v1/services/images/test?wait=true")
     assert r.status_code == 200 and other.unloads == 1
+
+
+def test_status_shows_the_workers_holding_a_model(fake, search_worker, image_worker, tmp_path):
+    class Holding(FakeGpuWorker):
+        def handle(self, request):
+            if request.url.path == "/info":
+                return httpx.Response(200, json={"worker": self.name, "profile": "x", "services": [
+                    {"name": "transcribe", "title": "Speech to text", "ollama": False, "loaded": True, "vram_gb": 5}]})
+            return super().handle(request)
+
+    def dead(request):
+        raise httpx.ConnectError("off")
+    app = make(fake, search_worker, image_worker, tmp_path,
+               extra=["transcriber=http://t:8000", "voice=http://v:8000"])
+    app.state.workers["transcriber"].transport = Holding("transcriber").transport
+    app.state.workers["voice"].transport = httpx.MockTransport(dead)
+    with TestClient(app) as c:
+        st = c.get("/v1/status").json()
+    held = {w["service"]: w for w in st["workers"]}
+    assert held["transcribe"]["vram_gb_estimate"] == 5  # loaded: listed, with its estimate
+    assert "images" not in held  # ComfyUI not running: holds nothing
+    assert st["ollama"]["loaded"][0]["name"] == "qwen3.5:9b"  # Ollama's own models stay

@@ -93,4 +93,6 @@ mut services/voice/voice_worker/main.py '            write_wav(wav_path, samples
     "the audio leaves without the license notice the CPML asks for"
 mut gateway/localai_gateway/main.py '                elif key and key not in present and s.get("pulls_model_on_first_use"):' '                elif False:' \
     "a service that downloads its model on first use is reported missing on a fresh install"
+mut gateway/localai_gateway/main.py '                    for s in info.get("services", []) if s.get("ollama") is False and s.get("loaded")]' '                    for s in info.get("services", []) if False]' \
+    "the status bar hides the workers that hold VRAM"
 exit $rc

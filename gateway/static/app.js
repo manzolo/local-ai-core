@@ -21,7 +21,7 @@ const T = {
     model_secs: "{model} · {n} excerpts read · {s} s", cited: "cited",
     st_ready: "ready", st_model_missing: "model missing", st_license_not_accepted: "license not accepted", st_off: "off", st_ollama_unreachable: "engine down",
     model: "Model", vram: "VRAM", vram_val: "~{e} GB estimated · {u} GB in use", license: "License",
-    last_test: "Last test", use: "Use", never: "never", passed: "passed", failed: "failed", run_test: "Run test",
+    last_test: "Last test", use: "Use", load: "load", never: "never", passed: "passed", failed: "failed", run_test: "Run test",
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
     vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
@@ -83,7 +83,7 @@ const T = {
     model_secs: "{model} · {n} estratti letti · {s} s", cited: "citato",
     st_ready: "pronto", st_model_missing: "modello assente", st_license_not_accepted: "licenza non accettata", st_off: "spento", st_ollama_unreachable: "motore giù",
     model: "Modello", vram: "VRAM", vram_val: "~{e} GB stimati · {u} GB in uso", license: "Licenza",
-    last_test: "Ultimo collaudo", use: "Uso", never: "mai", passed: "superato", failed: "fallito", run_test: "Collauda",
+    last_test: "Ultimo collaudo", use: "Uso", load: "carico", never: "mai", passed: "superato", failed: "fallito", run_test: "Collauda",
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
@@ -189,6 +189,7 @@ async function follow(jobId, onEvent) {
           onEvent(ev.event, JSON.parse(ev.data));
         }
       }
+      refreshStatus();  // a job that ends usually changes what is in memory: show it now, not in 3 s
       return;
     } catch (e) {
       await new Promise((res) => setTimeout(res, 800 * (attempt + 1)));
@@ -221,10 +222,14 @@ async function refreshStatus() {
     const p = (100 * g.vram_used_gb) / g.vram_total_gb;
     $("#st-vram-bar i").style.width = `${p}%`;
     $("#st-vram-bar").classList.toggle("hot", p > 85);
-    $("#st-vram").textContent = `${g.vram_used_gb} / ${g.vram_total_gb} GB · ${g.utilization}%`;
+    $("#st-vram").textContent = `${g.vram_used_gb} / ${g.vram_total_gb} GB · ${t("load")} ${g.utilization}%`;
   }
-  const loaded = st.ollama.loaded || [];
-  $("#st-loaded").textContent = loaded.length ? loaded.map((m) => `${m.name} (${m.vram_gb} GB)`).join(", ") : t("nothing");
+  // Ollama's models with the VRAM it measures; the workers with their own estimate (~): per-process
+  // memory cannot be told apart from inside a container
+  const held = (st.ollama.loaded || []).map((m) => `${m.name} (${m.vram_gb} GB)`)
+    .concat((st.workers || []).map((w) => `${w.title} (~${w.vram_gb_estimate} GB)`));
+  $("#st-loaded").textContent = held.length ? held.join(", ") : t("nothing");
+  $("#st-loaded").title = held.join("\n");
   const q = st.queue;
   $("#st-queue").textContent = q.running ? `${t("running")}: ${q.running.kind}${q.waiting ? ` · ${q.waiting} ${t("waiting")}` : ""}` : t("idle");
   $("#st-ollama").textContent = st.ollama.reachable ? `Ollama ${st.ollama.version}` : t("unreachable");
