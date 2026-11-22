@@ -32,6 +32,13 @@ the results cover more notes. Hits under `SEARCH_MIN_SCORE` (0.35) are dropped.
 2. the model receives the chunks numbered `[1]…[n]` and the rule to answer only from them, cite each
    statement, and say plainly when the notes do not answer;
 3. every `[n]` in the answer is checked: a number with no excerpt is reported in `invalid`, the answer is
-   marked not `grounded`, and the web page shows a warning.
+   marked not `grounded`, and the web page shows a warning;
+4. a valid citation is not taken as proof: every figure in the answer (an amount, a date, a quantity) must
+   appear in the excerpts the answer cites, or in the question. `1,800`, `1.800` and `1800.00` count as the
+   same figure. The ones found nowhere are listed in `unsupported`, the answer is not `grounded` and the
+   page says which figures to check.
+
+What this does **not** do is understand the answer: a wrong sentence without numbers, with a real
+citation, still passes. That is why the excerpts are always shown next to the answer.
 
 The language of the answer follows the language of the question.

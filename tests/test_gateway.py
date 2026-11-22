@@ -81,6 +81,31 @@ def test_search_endpoint(client):
     assert r.status_code == 200 and r.json()["results"][0]["file"] == "kitchen/bread.md"
 
 
+class Spy(httpx.AsyncBaseTransport):
+    """Notes, for each path asked to a worker, whether the GPU queue was held at that moment."""
+
+    def __init__(self, inner):
+        self.inner, self.held, self.app = inner, {}, None
+
+    async def handle_async_request(self, request):
+        self.held[request.url.path] = self.app.state.jobs.gpu.locked()
+        return await self.inner.handle_async_request(request)
+
+
+def test_search_takes_its_turn_in_the_gpu_queue(fake, search_worker, tmp_path):
+    # the query is embedded on the GPU: a search must not run beside a job
+    spy = Spy(httpx.ASGITransport(app=search_worker))
+    app = gw.create_app(gw.Settings({"OLLAMA_HOST": "http://fake-ollama", "WORKERS": "search=http://search:8000",
+                                     "DATA_DIR": str(tmp_path / "data")}),
+                        ollama_transport=fake.transport, worker_transports={"search": spy})
+    spy.app = app
+    with TestClient(app) as c:
+        wait_ready(c)
+        assert c.get("/v1/search", params={"q": "sourdough bread flour"}).status_code == 200
+        assert spy.held["/search"] is True
+        assert c.get("/v1/status").json()["queue"] == {"running": None, "waiting": 0}
+
+
 def test_services_catalogue(client):
     services = {s["name"]: s for s in client.get("/v1/services").json()["services"]}
     assert services["search"]["state"] == "ready" and services["ask"]["state"] == "ready"

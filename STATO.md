@@ -52,7 +52,7 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
 - **Prova da zero della fase 5** (commit `9c1081a`): 0 volumi, clone pulito, passi 3 e 12, collaudo
   superato in 747 s scaricando anche qwen3-vl. La prima volta aveva trovato la scrittura a mano data per
   «modello mancante» su un'installazione nuova: corretto (`pulls_model_on_first_use`).
-- **Test su CPU**: 106 test, 40 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
+- **Test su CPU**: 115 test, 46 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
   i workflow con Pillow seguendo le regole dei nodi veri), lint pulito, 26 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
@@ -197,6 +197,19 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   alla cartella corrente, che nel container era `/srv`, e ogni azione usciva con codice 1. Ora i comandi
   girano con `cwd` nella cartella del progetto (montata allo stesso percorso dell'host, `${PWD}`); c'è un
   test e una mutazione.
+- **Tre buchi trovati da una revisione esterna (Codex), 2026-11-22, chiusi:**
+  1. una risposta con un importo inventato era «grounded» se citava una fonte vera: ora ogni cifra della
+     risposta deve stare negli estratti che cita (o nella domanda), altrimenti finisce in `unsupported`.
+     Resta un limite dichiarato: una frase sbagliata senza numeri passa ancora;
+  2. un salvataggio dell'indice interrotto fra i due file poteva lasciare vettori nuovi accanto a testi
+     vecchi, con lo stesso numero di righe, senza che nessuno se ne accorgesse: ora il JSON porta lo
+     sha256 dei vettori. Gli indici vecchi lo ricevono al primo aggiornamento, senza ricalcolare nulla
+     (provato sull'indice vero);
+  3. ricerca ed elenco delle voci usavano la GPU fuori dalla coda: ora la ricerca prende il suo turno;
+     le voci si leggono dal file del modello sulla CPU (1,5 s, XTTS non caricato) e solo la prima volta,
+     a modello non ancora scaricato, passano dalla coda.
+  Codex non riusciva a far partire i test (mancavano httpx e ruff nel suo ambiente): si installano con
+  `pip install -r requirements/dev.txt`, vedi `docs/testing.md`.
 - Il volume `local-ai-core_ollama` (Ollama interno, ~14 GB) è stato rimosso il 2026-11-22 col sì del
   maintainer: in modalità famiglia non serve; in modalità autonoma i modelli si riscaricano da soli.
 

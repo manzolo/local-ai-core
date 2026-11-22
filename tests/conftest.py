@@ -239,12 +239,17 @@ class FakeXTTS:
 
     def __init__(self):
         self.loaded = False
+        self.saved = True  # the model is already downloaded: its voices can be read without loading it
         self.spoken = []
 
     def load(self):
         self.loaded = True
 
-    def voices(self):
+    def voices(self, load=True):
+        if not self.loaded and not self.saved:  # a fresh install: the names come only with the model
+            if not load:
+                return None
+            self.load()
         return sorted(["Claribel Dervla", "Damien Black", "Ana Florence"] + [f"Voice {i:02d}" for i in range(55)])
 
     def speak(self, piece, language, voice):

@@ -17,6 +17,7 @@ const T = {
     st_pulling: "Downloading model {m}", st_indexing: "Indexing your notes…", st_error: "Startup problem",
     thinking: "Searching your notes…", not_grounded: "No source backs this answer: treat it with care.",
     invalid: "Cited numbers that match no excerpt: {n}. Treat the answer with care.",
+    unsupported: "Figures not found in the cited excerpts: {n}. Check them against the sources.",
     truncated: "The answer was cut at the length limit.", no_results: "Nothing above the score threshold.",
     model_secs: "{model} · {n} excerpts read · {s} s", cited: "cited",
     st_ready: "ready", st_model_missing: "model missing", st_license_not_accepted: "license not accepted", st_off: "off", st_ollama_unreachable: "engine down",
@@ -82,6 +83,7 @@ const T = {
     st_pulling: "Scarico il modello {m}", st_indexing: "Indicizzo le note…", st_error: "Problema all'avvio",
     thinking: "Cerco nelle note…", not_grounded: "Nessuna fonte sostiene questa risposta: prendila con cautela.",
     invalid: "Citati numeri che non corrispondono a nessun estratto: {n}. Prendi la risposta con cautela.",
+    unsupported: "Cifre che non compaiono negli estratti citati: {n}. Controllale sulle fonti.",
     truncated: "La risposta è stata tagliata al limite di lunghezza.", no_results: "Niente sopra la soglia.",
     model_secs: "{model} · {n} estratti letti · {s} s", cited: "citato",
     st_ready: "pronto", st_model_missing: "modello assente", st_license_not_accepted: "licenza non accettata", st_off: "spento", st_ollama_unreachable: "motore giù",
@@ -327,9 +329,11 @@ $("#ask-form").addEventListener("submit", async (e) => {
         const notes = [];
         if (data.invalid.length) notes.push(t("invalid", { n: data.invalid.join(", ") }));
         else if (data.sources && !data.cited.length) notes.push(t("not_grounded"));
+        const unsupported = data.unsupported || [];
+        if (unsupported.length) notes.push(t("unsupported", { n: unsupported.join(", ") }));
         if (data.truncated) notes.push(t("truncated"));
         notice.hidden = !notes.length; notice.textContent = notes.join(" ");
-        notice.classList.toggle("bad", !!data.invalid.length);
+        notice.classList.toggle("bad", !!(data.invalid.length || unsupported.length));
         $("#ask-meta").textContent = t("model_secs", { model: data.model, n: data.sources, s: data.secs });
       } else if (type === "error") { text.textContent = `${t("error")}: ${data}`; }
     });

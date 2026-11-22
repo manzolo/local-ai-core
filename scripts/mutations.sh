@@ -103,4 +103,24 @@ mut gateway/localai_gateway/main.py '    async def admin_act(name: AdminService,
     "the gateway passes any name and action on to Docker control"
 mut services/control/control_worker/main.py '                                                stderr=asyncio.subprocess.STDOUT, cwd=PROJECT_DIR or None)' '                                                stderr=asyncio.subprocess.STDOUT)' \
     "the control commands run outside the project folder (family mode breaks)"
+mut services/search/search_worker/ask.py '            "grounded": bool(refs) and not invalid and not unsupported}' '            "grounded": bool(refs) and not invalid}' \
+    "a false amount is grounded as long as it cites a real source"
+mut services/search/search_worker/ask.py '    unsupported = unsupported_figures(answer, question, [sources[k - 1] for k in cited])' '    unsupported = unsupported_figures(answer, question, sources)' \
+    "a figure is accepted when any excerpt has it, not the cited one"
+mut services/search/search_worker/index.py '    if "vec_sha256" in meta and meta["vec_sha256"] != vec_sha256(vec):' '    if False:' \
+    "an interrupted save (new vectors, old chunks) is searched"
+mut gateway/localai_gateway/main.py '            async with app.state.jobs.turn():
+                await ensure_vram(app, None, 2, keep_model=settings.embed_model)
+                return await w.post("/search", {"q": q, "n": n, "min": min})' '            if True:
+                return await w.post("/search", {"q": q, "n": n, "min": min})' \
+    "a search uses the GPU outside the queue"
+mut gateway/localai_gateway/main.py '                    async with app.state.jobs.turn():
+                        await ensure_vram(app, None, 3, exclude=w.name)
+                        r = await c.get("/voices", params={"load": "true"})' '                    if True:
+                        r = await c.get("/voices", params={"load": "true"})' \
+    "the first list of voices loads XTTS outside the queue"
+mut services/voice/voice_worker/main.py '            if names or not load:
+                return names' '            if names:
+                return names' \
+    "listing the voices loads the model whatever the caller asked"
 exit $rc

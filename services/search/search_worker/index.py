@@ -1,11 +1,14 @@
 """The semantic index: chunks in a JSON file, their vectors in a float32 file next to it.
 
-  <base>.json   chunks (file, line, headings, text), per-file sha1, model, dimension
+  <base>.json   chunks (file, line, headings, text), per-file sha1, model, dimension, sha256 of the vectors
   <base>.f32    normalized vectors, one after the other
 
 Updates are incremental: only files whose sha1 changed are embedded again. An index whose vectors and
 chunks do not add up is refused, never searched: a search over misaligned vectors would return
-plausible-looking nonsense without saying so.
+plausible-looking nonsense without saying so. Counting is not enough: the two files are replaced one
+after the other, and a save cut in between leaves new vectors next to old chunks, often as many as before.
+So the JSON carries the sha256 of the vectors it was written with, and a pair that does not match is
+refused.
 """
 import array
 import hashlib
@@ -39,11 +42,20 @@ def load(base):
     dim = meta.get("dim", 0)
     if meta.get("version") != INDEX_VERSION or not dim or len(vec) != dim * len(meta.get("chunks", [])):
         raise IndexError_("index is inconsistent (vectors and chunks do not match): rebuild it")
+    # an index written before the checksum existed has none: update() adds it at the next pass
+    if "vec_sha256" in meta and meta["vec_sha256"] != vec_sha256(vec):
+        raise IndexError_("index is inconsistent (the vectors are not the ones saved with these chunks, "
+                          "as after an interrupted save): rebuild it")
     return meta, vec
+
+
+def vec_sha256(vec):
+    return hashlib.sha256(vec.tobytes()).hexdigest()
 
 
 def save(base, meta, vec):
     os.makedirs(os.path.dirname(base) or ".", exist_ok=True)
+    meta["vec_sha256"] = vec_sha256(vec)
     for p, data in ((base + ".f32", vec.tobytes()),
                     (base + ".json", json.dumps(meta, ensure_ascii=False).encode())):
         tmp = p + ".tmp"
@@ -119,7 +131,7 @@ async def update(ollama, roots, base, model, rebuild=False, progress=None):
         if progress:
             await progress(done, len(todo))
 
-    if todo or removed or not old or kept != len(old_meta["files"]):
+    if todo or removed or not old or kept != len(old_meta["files"]) or "vec_sha256" not in old_meta:
         meta = {"version": INDEX_VERSION, "model": model, "dim": dim, "files": file_info, "chunks": new_chunks}
         save(base, meta, new_vec)
     else:

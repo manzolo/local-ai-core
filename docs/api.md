@@ -31,7 +31,7 @@ curl -s -X POST 'http://localhost:8090/v1/ask?wait=true' \
   "result": {
     "answer": "The bathroom tap repair cost 180 euros, paid by bank transfer on 3 March [1].",
     "cited": [{"n": 1, "file": "house/repairs.md", "line": 5}],
-    "invalid": [], "grounded": true, "sources": 6, "model": "qwen3.5:9b", "secs": 0.7,
+    "invalid": [], "unsupported": [], "grounded": true, "sources": 6, "model": "qwen3.5:9b", "secs": 0.7,
     "excerpts": [{"score": 0.64, "file": "house/repairs.md", "line": 5, "text": "…"}]
   }
 }
@@ -41,7 +41,8 @@ curl -s -X POST 'http://localhost:8090/v1/ask?wait=true' \
 |---|---|
 | `cited` | the excerpts the answer cites, in order |
 | `invalid` | citation numbers that match no excerpt: if not empty, do not trust the answer |
-| `grounded` | at least one valid citation and no invalid one |
+| `unsupported` | figures of the answer (amounts, dates, quantities) found neither in the excerpts it cites nor in the question: if not empty, do not trust them |
+| `grounded` | at least one valid citation, no invalid one and no unsupported figure. It checks citations and figures, not the meaning of the sentences: read the excerpts |
 | `excerpts` | what the model read |
 
 Options: `n` (how many excerpts the model reads, default 6), `min` (minimum search score), `model`

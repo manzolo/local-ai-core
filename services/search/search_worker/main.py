@@ -188,7 +188,8 @@ async def answer_stream(o, question, sources, model):
     if not text:
         raise OllamaError(f"empty answer (stop reason: {end.get('done_reason')})")
     yield {"type": "result", **askmod.result(text, sources, model, round(time.time() - t0, 1),
-                                             truncated=end.get("done_reason") == "length")}
+                                             truncated=end.get("done_reason") == "length",
+                                             question=question)}
 
 
 @app.post("/ask")
@@ -255,7 +256,9 @@ async def selftest_checks(o):
 
         meta, vec, _ = await idx.update(o, root, base, s.embed_model)
         q = "how much did I pay to fix the leak in the bathroom?"
-        res = await _collect(o, q, await idx.query(o, meta, vec, q, 6, s.min_score), s.llm_model)
+        found = await idx.query(o, meta, vec, q, 6, s.min_score)
+        res = await _collect(o, q, found, s.llm_model)
+        res_ok, q_ok = {**res, "excerpts": found}, q
         first = res["cited"][0]["file"] if res["cited"] else "-"
         yield check("ask: grounded answer", "180" in res["answer"] and first == "projects/bathroom.md",
                     f"{res['answer'][:160]} (first source {first})")
@@ -272,6 +275,14 @@ async def selftest_checks(o):
         cited, invalid = askmod.citations(canned, 6)
         yield check("introduced error: invented citation", invalid == [9] and cited == [1],
                     f"cited {cited}, flagged {invalid}")
+
+        # a real source after a made-up amount: the citation is valid, the figure is in no excerpt
+        n = res_ok["cited"][0]["n"] if res_ok["cited"] else 1
+        false = askmod.result(f"The plumber was paid 9,750 euros [{n}].", res_ok["excerpts"],
+                              s.llm_model, 0, question=q_ok)
+        yield check("introduced error: false amount with a real source",
+                    false["unsupported"] == ["9750"] and not false["grounded"] and res_ok["grounded"],
+                    f"flagged {false['unsupported']}; the true answer stays grounded")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

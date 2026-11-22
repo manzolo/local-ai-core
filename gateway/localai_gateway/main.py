@@ -300,8 +300,12 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
              summary="Search the notes by meaning")
     async def search(q: str = Query(min_length=1, max_length=2000), n: int = Query(8, ge=1, le=50),
                      min: float | None = Query(None, ge=-1, le=1, description="minimum score (default 0.35)")):
+        w = await worker_for("search")
         try:
-            return await (await worker_for("search")).post("/search", {"q": q, "n": n, "min": min})
+            # the query is embedded on the GPU (and changed notes with it): it takes its turn like a job
+            async with app.state.jobs.turn():
+                await ensure_vram(app, None, 2, keep_model=settings.embed_model)
+                return await w.post("/search", {"q": q, "n": n, "min": min})
         except WorkerHTTPError as e:
             raise HTTPException(e.status, e.detail) from None
         except JobFailed as e:
@@ -537,7 +541,11 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         w = await worker_for("voice")
         try:
             async with w._client(httpx.Timeout(600, connect=5)) as c:
-                r = await c.get("/voices")
+                r = await c.get("/voices")  # from the model's folder, without loading XTTS
+                if r.status_code == 409:  # first time: the model must be downloaded and loaded, on the GPU
+                    async with app.state.jobs.turn():
+                        await ensure_vram(app, None, 3, exclude=w.name)
+                        r = await c.get("/voices", params={"load": "true"})
         except httpx.HTTPError as e:
             raise HTTPException(503, f"voice worker not reachable: {e}") from None
         if r.status_code != 200:
@@ -825,7 +833,8 @@ def safe_name(filename):
 async def ensure_vram(app, job, needed_gb, exclude=None, keep_model=None):
     """Before GPU work: if the GPU has less free VRAM than the job needs, free what others hold now instead of
     waiting for their idle timeout: Ollama's models (except keep_model, the one the job is about to use),
-    then the other GPU workers. Jobs run one at a time, so nothing is taken from a running job.
+    then the other GPU workers. Jobs run one at a time, so nothing is taken from a running job. job is None
+    for a call that holds a turn in the queue without being a job (a search).
     Without nvidia-smi there is nothing to measure."""
     gpu = await gpu_status()
     if not gpu:
@@ -842,8 +851,9 @@ async def ensure_vram(app, job, needed_gb, exclude=None, keep_model=None):
     for m in loaded:
         if keep_model and model_key(m["name"]) == model_key(keep_model):
             continue
-        await job.emit("unload", {"model": m["name"], "vram_gb": m["vram_gb"], "free_gb": round(free, 1),
-                                  "needed_gb": needed_gb})
+        if job:
+            await job.emit("unload", {"model": m["name"], "vram_gb": m["vram_gb"], "free_gb": round(free, 1),
+                                      "needed_gb": needed_gb})
         with contextlib.suppress(Exception):
             await app.state.ollama.unload(m["name"])
     keep = exclude if isinstance(exclude, set) else {exclude}
@@ -851,7 +861,7 @@ async def ensure_vram(app, job, needed_gb, exclude=None, keep_model=None):
         if w.name in keep:
             continue
         with contextlib.suppress(Exception):
-            if (await w.post("/unload", {}, timeout=60)).get("unloaded"):
+            if (await w.post("/unload", {}, timeout=60)).get("unloaded") and job:
                 await job.emit("unload", {"worker": w.name, "free_gb": round(free, 1), "needed_gb": needed_gb})
 
 

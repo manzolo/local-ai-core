@@ -95,7 +95,9 @@ looks like text to Docling: use `ocr=force`.
 
 ## "index is inconsistent"
 
-The index files do not match (a disk filled up during a write, for example). Rebuild it: **Search →
+The index files do not match: fewer vectors than chunks, or vectors that are not the ones saved with those
+chunks (a disk filled up or the machine stopped during a write, for example). It is refused instead of
+searched, because it would answer with the wrong notes without saying so. Rebuild it: **Search →
 Rebuild index**, or `curl -s -X POST 'http://localhost:8090/v1/search/index?wait=true' -H 'Content-Type: application/json' -d '{"rebuild": true}'`.
 
 ## The answer says it can't find something that is in my notes

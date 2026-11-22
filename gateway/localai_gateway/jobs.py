@@ -9,6 +9,7 @@ voice model and an LLM at once. Jobs are kept in memory (the last KEEP of them):
 forgets them, by design for now.
 """
 import asyncio
+import contextlib
 import time
 import uuid
 from collections import OrderedDict
@@ -98,6 +99,20 @@ class JobStore:
 
     def get(self, job_id):
         return self.jobs.get(job_id)
+
+    @contextlib.asynccontextmanager
+    async def turn(self):
+        """For a short GPU call that is not a job (a search, the list of voices): it waits its turn in the
+        same queue, so it never loads a model while a job is using the VRAM."""
+        self.waiting += 1
+        try:
+            await self.gpu.acquire()
+        finally:
+            self.waiting -= 1
+        try:
+            yield
+        finally:
+            self.gpu.release()
 
     def queue(self):
         return {"running": self.running.public() if self.running else None, "waiting": self.waiting}

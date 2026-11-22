@@ -119,9 +119,53 @@ def test_unknown_voice_and_no_words(client):
     assert r.status_code == 502 and "no words" in r.json()["detail"]
 
 
-def test_voices_list(client):
+def test_voices_list(client, voice_worker):
     v = client.get("/v1/voices").json()
     assert len(v["voices"]) == 58 and v["default"] == "Claribel Dervla"
+    assert voice_worker.state.engine.loaded is False  # listing the voices does not put XTTS on the GPU
+
+
+def test_first_voices_list_loads_the_model_inside_the_gpu_queue(fake, search_worker, voice_worker, tmp_path):
+    # a fresh install: the names come only with the model, and loading it is GPU work
+    class Spy(httpx.AsyncBaseTransport):
+        def __init__(self, inner):
+            self.inner, self.held, self.app = inner, [], None
+
+        async def handle_async_request(self, request):
+            self.held.append((request.url.query.decode(), self.app.state.jobs.gpu.locked()))
+            return await self.inner.handle_async_request(request)
+
+    voice_worker.state.engine.saved = False
+    spy = Spy(httpx.ASGITransport(app=voice_worker))
+    app = make(fake, search_worker, tmp_path, "voice=http://voice:8000", {"voice": spy})
+    spy.app = app
+    with TestClient(app) as c:
+        ready(c)
+        spy.held.clear()
+        assert len(c.get("/v1/voices").json()["voices"]) == 58
+    assert spy.held == [("", False), ("load=true", True)]
+
+
+def test_real_engine_lists_voices_without_loading_unless_asked(monkeypatch):
+    from voice_worker import main as vw
+    monkeypatch.setenv("XTTS_ACCEPT_CPML", "yes")
+    eng = vw.XTTS()
+
+    def no_gpu():
+        raise AssertionError("the model was loaded")
+    monkeypatch.setattr(eng, "load", no_gpu)
+    monkeypatch.setattr(vw, "saved_voices", lambda: ["Ana Florence", "Damien Black"])
+    assert eng.voices(load=False) == eng.voices() == ["Ana Florence", "Damien Black"]
+    monkeypatch.setattr(vw, "saved_voices", lambda: None)  # not downloaded yet
+    assert eng.voices(load=False) is None
+
+
+def test_saved_voices_reads_names_without_the_model(tmp_path):
+    from voice_worker import main as vw
+    assert vw.saved_voices(str(tmp_path / "missing.pth")) is None
+    bad = tmp_path / "speakers_xtts.pth"
+    bad.write_bytes(b"not a torch file")
+    assert vw.saved_voices(str(bad)) is None  # unreadable: ask the model instead
 
 
 @pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg encodes mp3 and ogg")

@@ -57,6 +57,24 @@ class SpeakError(RuntimeError):
     pass
 
 
+NOT_ACCEPTED = ("XTTS-v2 is under the Coqui Public Model License: non-commercial use only. "
+                "To accept it, set XTTS_ACCEPT_CPML=yes in .env and restart the voice service")
+SPEAKERS_FILE = os.path.join(os.environ.get("TTS_HOME", "/models"), "tts",
+                             "tts_models--multilingual--multi-dataset--xtts_v2", "speakers_xtts.pth")
+
+
+def saved_voices(path=None):
+    """The names in the speakers file of the downloaded model, read on the CPU; None if it is not there."""
+    path = path or SPEAKERS_FILE
+    if not os.path.isfile(path):
+        return None
+    try:
+        import torch
+        return sorted(torch.load(path, map_location="cpu", weights_only=True)) or None
+    except Exception:  # noqa: BLE001 - an unreadable file only means: ask the model
+        return None
+
+
 class XTTS:
     """XTTS-v2, loaded lazily. Importing this module needs no coqui-tts (tests run on CPU without it)."""
 
@@ -74,8 +92,7 @@ class XTTS:
         with self._lock:
             if self.tts is None:
                 if not accepted():
-                    raise SpeakError("XTTS-v2 is under the Coqui Public Model License: non-commercial use only. "
-                                     "To accept it, set XTTS_ACCEPT_CPML=yes in .env and restart the voice service")
+                    raise SpeakError(NOT_ACCEPTED)
                 os.environ["COQUI_TOS_AGREED"] = "1"  # accepted by the user, above: coqui-tts asks for it
                 import torch
                 from TTS.api import TTS
@@ -84,7 +101,15 @@ class XTTS:
                 self.sample_rate = self.tts.synthesizer.output_sample_rate
             return self.tts
 
-    def voices(self):
+    def voices(self, load=True):
+        """The built-in voices. They are read from the model's folder when the model is not in memory, so
+        that listing them does not put XTTS on the GPU; None if that needs the model and load is False."""
+        if self.tts is None:
+            if not accepted():
+                raise SpeakError(NOT_ACCEPTED)
+            names = saved_voices()
+            if names or not load:
+                return names
         return sorted(self.load().speakers or [])
 
     def speak(self, piece, language, voice):
@@ -150,12 +175,16 @@ async def info():
 
 
 @app.get("/voices")
-async def voices():
+async def voices(load: bool = False):
+    """load=false never touches the GPU: 409 when the names are known only by loading the model."""
     try:
         async with app.state.lock:
-            return {"voices": await asyncio.to_thread(app.state.engine.voices), "default": DEFAULT_VOICE}
+            names = await asyncio.to_thread(app.state.engine.voices, load)
     except SpeakError as e:
         raise HTTPException(403, str(e)) from None
+    if names is None:
+        raise HTTPException(409, "the voices are known once the model is downloaded: ask again with load=true")
+    return {"voices": names, "default": DEFAULT_VOICE}
 
 
 def write_wav(path, samples, rate, notice=None):

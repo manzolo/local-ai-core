@@ -61,6 +61,10 @@ GPU jobs wait in **one queue, one at a time**, and before each one the gateway m
 VRAM is less than the job needs, it asks Ollama to free its models (not the one the job is about to use)
 and the other workers to unload. A worker that unloads restarts its container, which gives back all of its
 memory; ComfyUI, the largest, is stopped and restarted by its adapter.
+Two calls are not jobs but use the GPU, so they take their turn in the same queue: a **search** (the
+question is embedded by bge-m3, and changed notes with it) and the **first list of voices** on a fresh
+install (later the names are read from the model's folder, without loading it). A search therefore waits
+while a long job runs.
  On a 12 GB card a speech model, a voice model and an LLM
 do not fit together; a queue is simpler and more honest than guessing what fits. The status bar of the
 web page and `GET /v1/status` show what is running and how many jobs wait.

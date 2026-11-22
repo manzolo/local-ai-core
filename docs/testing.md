@@ -26,6 +26,7 @@ bathroom repair, a vegetable garden):
 | a question the notes answer | the right figure (180 euros), citing the right note |
 | a question the notes do not answer | says so, invents nothing |
 | **introduced error**: an answer citing `[9]` with 6 excerpts | `[9]` flagged as invalid |
+| **introduced error**: the true answer's real citation after a made-up amount (9,750 euros) | the amount flagged as unsupported, the answer not grounded |
 
 For documents, on an invented electricity bill printed to PDF and "scanned": the text PDF gives back its
 title, table and amounts; a figure changed in the expected text makes the comparison fail; the scan is
@@ -55,6 +56,12 @@ and [Voice](services/voice.md).
 |---|---|
 | an invented citation is accepted | the citation tests |
 | a truncated index is accepted | the index tests |
+| an interrupted save (new vectors, old chunks) is searched | the checksum test |
+| a false amount is grounded as long as it cites a real source | the figures test |
+| a figure is accepted when any excerpt has it, not the cited one | the figures test |
+| a search uses the GPU outside the queue | the queue test |
+| the first list of voices loads XTTS outside the queue | the queue test |
+| listing the voices loads the model whatever the caller asked | the voices test |
 | every update re-reads every file | the incremental update test |
 | the model is called with no excerpts | the "nothing found" test |
 | a wrong API key is accepted | the authentication test |
