@@ -1,0 +1,54 @@
+# Troubleshooting
+
+[← back to the index](../README.md)
+
+Start from `docker compose ps` (is everything `Up` and `healthy`?) and `docker compose logs --tail 50`.
+
+## The GPU is not visible in containers
+
+`could not select device driver "" with capabilities: [[gpu]]` means Docker does not know the NVIDIA
+runtime. Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html),
+then:
+
+```bash
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+docker run --rm --gpus all ubuntu:24.04 nvidia-smi
+```
+
+## The page shows "Downloading model" for a long time
+
+The two models weigh about 8 GB. The banner shows the progress; `docker compose logs -f ollama` shows the
+download. If the download fails (no network), the banner turns red and the gateway retries every 30 s.
+
+## "Waiting for the engine (Ollama)…" never ends
+
+- standalone: `docker compose logs ollama`. A GPU error there means the toolkit problem above;
+- with the family override: is `ollama-docker` running, and is its container called `ollama` on
+  `local-ai-net`? `docker network inspect local-ai-net` lists who is attached.
+
+## Port 8090 is already taken
+
+Set another one in `.env`: `GATEWAY_PORT=8091`, then `docker compose up -d`.
+
+## Out of GPU memory
+
+`GET /v1/status` (or the status bar) shows what holds the VRAM. Ollama frees a model after
+`IDLE_UNLOAD_MINUTES`; to free it now:
+
+```bash
+docker compose exec ollama ollama stop qwen3.5:9b
+```
+
+On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in `.env`.
+
+## "index is inconsistent"
+
+The index files do not match (a disk filled up during a write, for example). Rebuild it: **Search →
+Rebuild index**, or `curl -s -X POST 'http://localhost:8090/v1/search/index?wait=true' -H 'Content-Type: application/json' -d '{"rebuild": true}'`.
+
+## The answer says it can't find something that is in my notes
+
+- the note must be a `.md` file inside `NOTES_DIR` (hidden folders are skipped);
+- look at **Search** with the same question: if the note is not in the first results, lower
+  `SEARCH_MIN_SCORE` (e.g. `0.3`) or ask with words closer to the note's.

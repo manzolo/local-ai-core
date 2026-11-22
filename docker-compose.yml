@@ -1,0 +1,77 @@
+# local-ai-core — local AI services on your own GPU behind one API and a web UI.
+#
+#   docker compose up -d          gateway + Ollama + search/ask   → http://localhost:8090
+#
+# Standalone: this file brings its own Ollama and never touches the shared `local-ai-net` network.
+# To use the Ollama of the local-ai-lab family instead, add the override:
+#   docker compose -f docker-compose.yml -f docker-compose.local-ai.yml up -d
+# Settings live in .env (copy .env.example); every variable has a sensible default.
+name: local-ai-core
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    image: local-ai-core/gateway:0.1.0
+    ports:
+      # 127.0.0.1 by default: opening the gateway to the LAN is an explicit choice (BIND_ADDR=0.0.0.0)
+      - "${BIND_ADDR:-127.0.0.1}:${GATEWAY_PORT:-8090}:8090"
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:9b}
+      EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+      LOCAL_AI_API_KEY: ${LOCAL_AI_API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      AUTO_PULL_MODELS: ${AUTO_PULL_MODELS:-true}
+      AUTO_INDEX: ${AUTO_INDEX:-true}
+      WORKERS: search=http://search:8000
+    volumes:
+      - gateway-data:/data
+    depends_on:
+      - search
+    deploy:
+      resources:
+        reservations:
+          devices:
+            # only nvidia-smi for the status bar: the gateway itself uses no VRAM
+            - driver: nvidia
+              count: all
+              capabilities: [utility]
+    restart: unless-stopped
+
+  search:
+    build:
+      context: .
+      dockerfile: services/search/Dockerfile
+    image: local-ai-core/search:0.1.0
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:9b}
+      EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+      SEARCH_MIN_SCORE: ${SEARCH_MIN_SCORE:-0.35}
+      IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
+    volumes:
+      - index:/data/index
+      # the notes to search, read-only: point NOTES_DIR at your own folder of Markdown files
+      - ${NOTES_DIR:-./examples/notes}:/notes:ro
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.40.16@sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592
+    # no published port and no fixed container name: it never clashes with an Ollama already on the host
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  gateway-data:
+  index:
+  ollama:

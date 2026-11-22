@@ -45,7 +45,7 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker interni ─
   alla lettera su un clone pulito. Le schermate si fanno durante la prova (`make screenshots`, Chromium
   headless in container) e mostrano solo dati sintetici.
 
-## Scelte prese come default (si cambiano se Andrea dice di no)
+## Scelte prese come default (si cambiano se il maintainer dice di no)
 
 | Scelta | Default | Perché |
 |---|---|---|
@@ -53,7 +53,7 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker interni ─
 | Job | in memoria nel gateway, risultati su volume | basta alla fase 1; un riavvio perde i job in corso |
 | GPU | il compose di base chiede la GPU NVIDIA | è il requisito dichiarato; la CI usa worker finti |
 | Lingua di questa pagina | italiano | è il quaderno di lavoro; README e codice in inglese |
-| Nomi | repo `local-ai-core`, servizio compose `gateway`, OpenAPI «Local AI Core» | deciso da Andrea il 2026-11-22 |
+| Nomi | repo `local-ai-core`, servizio compose `gateway`, OpenAPI «Local AI Core» | deciso dal maintainer il 2026-11-22 |
 | Licenza del codice | MIT | come da brief; licenze dei modelli nel README, una per una |
 | Brief di partenza | `PROMPT.md` fuori da git (`.gitignore`) | contiene percorsi e nomi privati |
 
@@ -67,7 +67,7 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker interni ─
 ## Cosa manca
 
 Tutto il codice. Le fasi sono quelle del brief: 1 scheletro con search + ask, 2 documenti,
-3 trascrizione e parlanti, 4 immagini, 5 voce e scrittura a mano, 6 rilascio (solo col sì di Andrea).
+3 trascrizione e parlanti, 4 immagini, 5 voce e scrittura a mano, 6 rilascio (solo col sì del maintainer).
 
 ## Prossimo passo
 

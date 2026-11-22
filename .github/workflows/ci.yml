@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # CPU only: Ollama and the GPU are replaced by fakes. The real test is `make collaudo` on a GPU.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - run: pip install -r requirements/dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Tests (fake Ollama, real workers, real gateway)
+        run: pytest -q
+      - name: Introduced errors must be caught
+        run: scripts/mutations.sh pytest
+      - name: Nothing private in the repo
+        run: scripts/grep-private.sh
+
+  compose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose files are valid, standalone and with the family override
+        run: |
+          docker network create local-ai-net
+          docker compose config -q
+          docker compose -f docker-compose.yml -f docker-compose.local-ai.yml config -q
+          test "$(docker compose -f docker-compose.yml -f docker-compose.local-ai.yml config --services | sort | xargs)" = "gateway search"
+      - name: Images build
+        run: docker compose build

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local AI Core</title>
+<meta name="description" content="Local AI services on your own GPU">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="7"/><circle cx="12" cy="13" r="2.6"/><circle cx="20" cy="13" r="2.6"/><path d="M10 20.5c3.6 2.6 8.4 2.6 12 0"/></svg>
+    <div>
+      <h1>Local AI Core</h1>
+      <p class="tagline" data-i18n="tagline">AI on your own GPU. Nothing leaves this machine.</p>
+    </div>
+  </div>
+  <div class="tools">
+    <a class="btn ghost" href="/docs" target="_blank" rel="noopener" data-i18n="api_docs">API docs</a>
+    <button class="btn ghost" id="lang" type="button" aria-label="Language">IT</button>
+    <button class="btn ghost" id="theme" type="button" aria-label="Theme">◐</button>
+  </div>
+</header>
+
+<section class="status" id="status" aria-live="polite">
+  <div class="stat"><span class="k" data-i18n="gpu">GPU</span><span class="v" id="st-gpu">—</span>
+    <div class="bar" id="st-vram-bar" hidden><i></i></div><span class="sub" id="st-vram"></span></div>
+  <div class="stat"><span class="k" data-i18n="in_memory">In memory</span><span class="v" id="st-loaded">—</span></div>
+  <div class="stat"><span class="k" data-i18n="queue">Queue</span><span class="v" id="st-queue">—</span></div>
+  <div class="stat"><span class="k" data-i18n="engine">Engine</span><span class="v" id="st-ollama">—</span></div>
+</section>
+
+<section class="banner" id="startup" hidden>
+  <div class="spin" aria-hidden="true"></div>
+  <div><strong id="startup-title"></strong><div class="sub" id="startup-detail"></div>
+    <div class="bar wide" id="startup-bar" hidden><i></i></div></div>
+</section>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" class="tab" data-tab="ask" aria-selected="true" data-i18n="tab_ask">Ask</button>
+  <button role="tab" class="tab" data-tab="search" aria-selected="false" data-i18n="tab_search">Search</button>
+  <button role="tab" class="tab" data-tab="services" aria-selected="false" data-i18n="tab_services">Services</button>
+</nav>
+
+<main>
+  <section class="panel" id="panel-ask" role="tabpanel">
+    <form id="ask-form" class="query">
+      <textarea id="ask-q" rows="2" required maxlength="2000" data-i18n-ph="ask_ph"
+        placeholder="Ask a question about your notes…"></textarea>
+      <button class="btn primary" type="submit" id="ask-go" data-i18n="ask_go">Ask</button>
+    </form>
+    <p class="hint" data-i18n="ask_hint">Answers come only from your notes, and every source is checked.</p>
+    <article class="answer" id="ask-out" hidden>
+      <div class="answer-text" id="ask-text"></div>
+      <div class="notice" id="ask-notice" hidden></div>
+      <div class="meta" id="ask-meta"></div>
+      <h3 data-i18n="sources">Sources</h3>
+      <ol class="sources" id="ask-sources"></ol>
+    </article>
+  </section>
+
+  <section class="panel" id="panel-search" role="tabpanel" hidden>
+    <form id="search-form" class="query">
+      <input id="search-q" type="search" required maxlength="2000" data-i18n-ph="search_ph"
+        placeholder="Search by meaning, not by exact words…">
+      <button class="btn primary" type="submit" data-i18n="search_go">Search</button>
+    </form>
+    <div class="row">
+      <p class="hint" data-i18n="search_hint">Your notes folder is indexed at startup and kept up to date.</p>
+      <button class="btn ghost small" id="reindex" type="button" data-i18n="reindex">Rebuild index</button>
+    </div>
+    <div class="sub" id="index-state"></div>
+    <ol class="hits" id="search-out"></ol>
+  </section>
+
+  <section class="panel" id="panel-services" role="tabpanel" hidden>
+    <div class="cards" id="services"></div>
+  </section>
+</main>
+
+<dialog id="key-dialog">
+  <form method="dialog" id="key-form">
+    <h2 data-i18n="key_title">API key</h2>
+    <p data-i18n="key_text">This gateway asks for a key (LOCAL_AI_API_KEY).</p>
+    <input id="key-input" type="password" autocomplete="off" required>
+    <div class="row end"><button class="btn primary" value="ok" data-i18n="key_save">Save</button></div>
+  </form>
+</dialog>
+
+<footer><span>local-ai-core</span> · <a href="/openapi.json">openapi.json</a> · <span id="version"></span></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

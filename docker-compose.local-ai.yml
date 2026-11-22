@@ -1,0 +1,26 @@
+# Join the local-ai-lab family: use the shared Ollama of ollama-docker on `local-ai-net` instead of
+# bringing our own, and let the rest of the family reach the gateway at http://local-ai-core:8090.
+#
+#   cd ../ollama-docker && docker compose up -d          # creates local-ai-net and the `ollama` container
+#   docker compose -f docker-compose.yml -f docker-compose.local-ai.yml up -d
+#
+# No network yet and no wish to run ollama-docker?  docker network create local-ai-net
+services:
+  ollama:
+    # our own Ollama stays off: on local-ai-net the name `ollama` is the family's one
+    profiles: ["own-ollama"]
+
+  gateway:
+    networks:
+      default:
+      local-ai-net:
+        aliases: [local-ai-core]
+
+  search:
+    networks:
+      - default
+      - local-ai-net
+
+networks:
+  local-ai-net:
+    external: true

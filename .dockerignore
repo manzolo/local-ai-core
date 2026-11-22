@@ -1,0 +1,11 @@
+.git
+**/__pycache__
+**/.pytest_cache
+docs
+examples
+tests
+**/tests
+PROMPT.md
+STATO.md
+.env
+.claude
