@@ -30,7 +30,7 @@ def ask(p, question=QUESTION):
     p.fill("#ask-q", question)
     p.click("#ask-go")
     p.wait_for_function("document.querySelector('#ask-meta').textContent.length > 0", timeout=180_000)
-    p.wait_for_timeout(400)
+    p.wait_for_timeout(3500)  # one status refresh, so the queue shows idle again
 
 
 def shot(p, name, full=False):
@@ -46,6 +46,9 @@ with sync_playwright() as pw:
         p.wait_for_timeout(1500)
         shot(p, "startup")
         sys.exit(0)
+
+    # warm-up: the first answer also loads the model into VRAM, and its time would be misleading
+    ask(page(b, DESKTOP), "warm up")
 
     for theme in ("light", "dark"):
         p = page(b, DESKTOP, theme)
@@ -70,7 +73,7 @@ with sync_playwright() as pw:
     p.wait_for_selector(".card [data-test]")
     p.click(".card [data-test='search']")
     p.wait_for_function("document.querySelectorAll('.card .checks li').length >= 8", timeout=300_000)
-    p.wait_for_timeout(500)
+    p.wait_for_timeout(3500)
     shot(p, "services", full=True)
 
     p = b.new_context(viewport=DESKTOP, device_scale_factor=2).new_page()

@@ -5,6 +5,7 @@ runs as jobs (202 + job id; follow it with GET /v1/jobs/{id} or its event stream
 a single queue. The workers and Ollama sit behind it on the compose network.
 """
 import asyncio
+import collections
 import contextlib
 import hmac
 import json
@@ -124,6 +125,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
     app.state.ollama = OllamaClient(settings.ollama_host, transport=ollama_transport)
     app.state.workers = {n: Worker(n, u, transport=worker_transports.get(n)) for n, u in settings.workers.items()}
     app.state.boot = {"phase": "starting", "detail": "", "pull": None, "error": None}
+    app.state.pull_log = collections.deque(maxlen=50)  # last progress updates, for tests and debugging
     app.state.tests = load_tests(settings)
     app.add_middleware(BodyLimit, limit_bytes=settings.max_upload_mb * 2**20)
 
@@ -414,6 +416,7 @@ async def bootstrap(app):
 
                     async def progress(status, completed, total, m=m):
                         boot["pull"] = {"model": m, "status": status, "completed": completed, "total": total}
+                        app.state.pull_log.append((status, completed, total))
                     await ol.pull(m, progress)
                 boot["pull"] = None
             if s.auto_index:

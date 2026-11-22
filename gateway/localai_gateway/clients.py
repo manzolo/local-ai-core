@@ -41,7 +41,9 @@ class OllamaClient:
         return out
 
     async def pull(self, model, on_progress):
-        """Downloads a model; on_progress(status, completed, total) is awaited for each update."""
+        """Downloads a model. Ollama reports progress per layer: on_progress(status, completed, total) gets
+        the sum over the layers seen so far, so it describes the whole model."""
+        layers = {}
         async with self._client(httpx.Timeout(None, connect=10)) as c:
             async with c.stream("POST", "/api/pull", json={"model": model, "stream": True}) as r:
                 if r.status_code != 200:
@@ -52,7 +54,12 @@ class OllamaClient:
                     d = json.loads(line)
                     if "error" in d:
                         raise JobFailed(f"pull of {model} failed: {d['error']}")
-                    await on_progress(d.get("status", ""), d.get("completed"), d.get("total"))
+                    if d.get("digest") and d.get("total"):
+                        layers[d["digest"]] = (d.get("completed") or 0, d["total"])
+                    status = "downloading" if d.get("digest") else d.get("status", "")
+                    done = sum(c for c, _ in layers.values())
+                    total = sum(t for _, t in layers.values())
+                    await on_progress(status, done or None, total or None)
 
 
 class Worker:

@@ -43,6 +43,9 @@ def test_startup_pulls_missing_models_and_indexes(fake, search_worker, tmp_path)
     with TestClient(make(fake, search_worker, tmp_path)) as c:
         st = wait_ready(c)
         assert fake.pulled == ["bge-m3", "qwen3.5:9b"]
+        # progress covers the whole model, not the layer being downloaded
+        assert c.app.state.pull_log[-1] == ("success", 400, 400)
+        assert ("downloading", 350, 400) in c.app.state.pull_log
         assert st["ollama"]["reachable"] and st["ollama"]["loaded"][0]["name"] == "qwen3.5:9b"
         jobs = c.get("/v1/jobs").json()["jobs"]
         assert jobs[0]["kind"] == "index" and jobs[0]["status"] == "done"

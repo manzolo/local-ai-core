@@ -31,4 +31,7 @@ mut gateway/localai_gateway/main.py 'if state["received"] > self.limit:' 'if Fal
     "the upload limit is ignored for chunked bodies"
 mut gateway/localai_gateway/jobs.py '                async with self.gpu:' '                async with asyncio.Lock():' \
     "the GPU queue lets every job through"
+mut gateway/localai_gateway/clients.py 'layers[d["digest"]] = (d.get("completed") or 0, d["total"])' \
+    'layers = {d["digest"]: (d.get("completed") or 0, d["total"])}' \
+    "the download progress shows one layer instead of the whole model"
 exit $rc

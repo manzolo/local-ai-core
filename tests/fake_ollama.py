@@ -45,7 +45,10 @@ class FakeOllama:
             model = json.loads(request.content)["model"]
             self.pulled.append(model)
             self.models.append(model if ":" in model else model + ":latest")
-            lines = [{"status": "pulling", "completed": 50, "total": 100}, {"status": "success"}]
+            lines = [{"status": "pulling a", "digest": "sha256:a", "completed": 50, "total": 100},
+                     {"status": "pulling b", "digest": "sha256:b", "completed": 300, "total": 300},
+                     {"status": "pulling a", "digest": "sha256:a", "completed": 100, "total": 100},
+                     {"status": "success"}]
             return httpx.Response(200, content="".join(json.dumps(x) + "\n" for x in lines))
         if path == "/api/chat":
             self.chat_calls += 1
