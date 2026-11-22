@@ -13,8 +13,8 @@ jobs:
     # CPU only: Ollama and the GPU are replaced by fakes. The real test is `make collaudo` on a GPU.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -32,7 +32,7 @@ jobs:
   compose:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Compose files are valid, standalone and with the family override
         run: |
           docker network create local-ai-net
