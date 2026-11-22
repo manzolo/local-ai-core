@@ -39,5 +39,6 @@ jobs:
           docker compose config -q
           docker compose -f docker-compose.yml -f docker-compose.local-ai.yml config -q
           test "$(docker compose -f docker-compose.yml -f docker-compose.local-ai.yml config --services | sort | xargs)" = "gateway search"
+          test "$(docker compose --profile docs config --services | sort | xargs)" = "documents gateway ollama search"
       - name: Images build
         run: docker compose build

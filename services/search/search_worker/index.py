@@ -52,24 +52,38 @@ def save(base, meta, vec):
         os.replace(tmp, p)
 
 
-async def update(ollama, root, base, model, rebuild=False, progress=None):
-    """Brings the index in line with the files under root. progress(done, total) is awaited per batch.
-    Returns (meta, vec, stats)."""
+def files_of(roots):
+    """(relative name, path) for every .md under the roots. roots: [(prefix, folder)], a missing folder is
+    skipped; a prefix keeps two folders apart in the index ("library/invoice.md")."""
+    out = []
+    for prefix, root in roots:
+        if not os.path.isdir(root):
+            continue
+        for p in list_files(root):
+            rel = os.path.relpath(p, root)
+            out.append((f"{prefix}/{rel}" if prefix else rel, p))
+    return out
+
+
+async def update(ollama, roots, base, model, rebuild=False, progress=None):
+    """Brings the index in line with the files under the roots ([(prefix, folder)], or one folder).
+    progress(done, total) is awaited per batch. Returns (meta, vec, stats)."""
+    if isinstance(roots, str):
+        roots = [("", roots)]
     old = None if rebuild else load(base)
     if old and old[0].get("model") != model:
         old = None
     old_meta, old_vec = old if old else ({"files": {}, "chunks": [], "dim": 0}, array.array("f"))
     dim = old_meta.get("dim", 0)
 
-    files = list_files(root)
+    files = files_of(roots)
     by_file = {}
     for i, c in enumerate(old_meta["chunks"]):
         by_file.setdefault(c["file"], []).append(i)
 
     new_chunks, new_vec, todo, file_info = [], array.array("f"), [], {}
     kept = changed = 0
-    for p in files:
-        rel = os.path.relpath(p, root)
+    for rel, p in files:
         try:
             with open(p, "rb") as f:
                 raw = f.read()

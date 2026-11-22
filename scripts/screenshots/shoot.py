@@ -7,12 +7,14 @@ run, the API docs. --startup only captures the startup banner (models downloadin
 `docker compose up -d` on a fresh install.
 Only the example notes should be on screen: never point it at a gateway serving private notes.
 """
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 BASE, OUT = sys.argv[1].rstrip("/"), sys.argv[2]
 QUESTION = "How much did the bathroom repair cost, and how did I pay?"
+SCAN = "/fixtures/invoice-scan.pdf"  # the invented bill, as a scan (documents profile only)
 DESKTOP = {"width": 1180, "height": 860}
 PHONE = {"width": 390, "height": 844}
 
@@ -75,6 +77,19 @@ with sync_playwright() as pw:
     p.wait_for_function("document.querySelectorAll('.card .checks li').length >= 8", timeout=300_000)
     p.wait_for_timeout(3500)
     shot(p, "services", full=True)
+
+    if os.path.exists(SCAN):
+        p = page(b, DESKTOP, tab="documents")
+        p.wait_for_function("!document.querySelector('#doc-go').disabled", timeout=30_000)
+        p.set_input_files("#doc-file", SCAN)
+        p.click("#doc-go")
+        p.wait_for_selector("#doc-out:not([hidden])", timeout=600_000)
+        p.wait_for_timeout(3500)
+        shot(p, "documents", full=True)
+
+        p = page(b, DESKTOP)
+        ask(p, "How much is the electricity bill in total, and when will it be paid?")
+        shot(p, "ask-library", full=True)
 
     p = b.new_context(viewport=DESKTOP, device_scale_factor=2).new_page()
     p.goto(f"{BASE}/docs")

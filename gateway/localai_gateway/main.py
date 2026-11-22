@@ -11,10 +11,13 @@ import hmac
 import json
 import logging
 import os
+import re
+import shutil
 import time
+import uuid
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -38,9 +41,11 @@ class Settings:
         self.auto_pull = env.get("AUTO_PULL_MODELS", "true").lower() in ("1", "true", "yes")
         self.auto_index = env.get("AUTO_INDEX", "true").lower() in ("1", "true", "yes")
         self.data_dir = env.get("DATA_DIR", "/data")
+        self.uploads_dir = env.get("UPLOADS_DIR", "/data/uploads")
+        self.library_dir = env.get("LIBRARY_DIR", "/library")
         self.static_dir = env.get("STATIC_DIR", os.path.join(os.path.dirname(HERE), "static"))
         self.workers = {}
-        for item in env.get("WORKERS", "search=http://search:8000").split():
+        for item in env.get("WORKERS", "search=http://search:8000 documents=http://documents:8000").split():
             name, _, url = item.partition("=")
             if name and url:
                 self.workers[name] = url
@@ -208,15 +213,19 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                 continue
             w.services = [s["name"] for s in info.get("services", [])]
             for s in info.get("services", []):
-                key = model_key(s["model"]) if s.get("model") else None
-                if present is None:
+                uses_ollama = s.get("ollama", True)
+                key = model_key(s["model"]) if s.get("model") and uses_ollama else None
+                if not uses_ollama:
+                    state = "ready"
+                elif present is None:
                     state = "ollama_unreachable"
                 elif key and key not in present:
                     state = "model_missing"
                 else:
                     state = "ready"
+                is_loaded = key in loaded if uses_ollama else bool(s.get("loaded"))
                 out.append({**s, "worker": w.name, "profile": info.get("profile"), "state": state,
-                            "loaded": key in loaded, "vram_in_use_gb": loaded.get(key, 0.0),
+                            "loaded": is_loaded, "vram_in_use_gb": loaded.get(key, 0.0) if uses_ollama else None,
                             "last_test": app.state.tests.get(w.name)})
         return {"services": out}
 
@@ -285,6 +294,80 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
         job = app.state.jobs.submit("ask", {"question": req.question}, run)
         return await maybe_wait(job, wait)
+
+    @app.post("/v1/documents/convert", dependencies=[v1], tags=["documents"], status_code=202,
+              summary="PDF (scanned too), image, DOCX, PPTX, XLSX, HTML → Markdown; optionally into the library (job)")
+    async def documents_convert(
+            file: UploadFile = File(description="the document"),
+            ocr: Literal["auto", "force", "off"] = Form("auto", description="auto: OCR only where a page has "
+                                                         "no text; force: OCR every page; off: never"),
+            lang: str = Form("en", pattern=r"^[a-z]{2,8}$", description="OCR language (one)"),
+            tables: bool = Form(True, description="recognise table structure"),
+            add_to_library: bool = Form(False, description="save the Markdown in the library and index it, "
+                                                           "so /v1/ask can answer from it"),
+            wait: bool = False):
+        name = safe_name(file.filename or "document")
+        ext = os.path.splitext(name)[1].lower()
+        if ext not in DOC_TYPES:
+            raise HTTPException(415, f"unsupported file type {ext or '(none)'}: one of {', '.join(sorted(DOC_TYPES))}")
+        w = await worker_for("documents")
+        job_dir = os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
+        os.makedirs(job_dir, exist_ok=True)
+        src = os.path.join(job_dir, name)
+        with open(src, "wb") as f:
+            while chunk := await file.read(2**20):
+                f.write(chunk)
+        await file.close()
+
+        async def run(job):
+            try:
+                await job.set_progress(0, None, "converting")
+                await ensure_vram(app, job, 3)
+                out = os.path.join(job_dir, "out.md")
+                try:
+                    stats = await w.post("/convert", {"path": src, "out": out, "ocr": ocr, "lang": lang,
+                                                      "tables": tables}, timeout=1800)
+                except WorkerHTTPError as e:
+                    raise JobFailed(e.detail) from None
+                with open(out, encoding="utf-8") as f:
+                    md = f.read()
+                result = {"filename": name, "markdown": md, **stats, "library": None, "index": None}
+                if add_to_library:
+                    lib_name = os.path.splitext(name)[0] + ".md"
+                    os.makedirs(settings.library_dir, exist_ok=True)
+                    with open(os.path.join(settings.library_dir, lib_name), "w", encoding="utf-8") as f:
+                        f.write(md)
+                    result["library"] = f"library/{lib_name}"
+                    await job.set_progress(0, None, "indexing")
+                    result["index"] = await run_index(await worker_for("search"), job)
+                return result
+            finally:
+                shutil.rmtree(job_dir, ignore_errors=True)  # uploads never outlive their job
+
+        job = app.state.jobs.submit("documents", {"filename": name, "ocr": ocr, "add_to_library": add_to_library}, run)
+        return await maybe_wait(job, wait)
+
+    @app.get("/v1/library", dependencies=[v1], tags=["documents"], summary="Documents added to the library")
+    async def library_list():
+        d, out = settings.library_dir, []
+        if os.path.isdir(d):
+            for n in sorted(os.listdir(d)):
+                p = os.path.join(d, n)
+                if n.endswith(".md") and os.path.isfile(p):
+                    st = os.stat(p)
+                    out.append({"name": n, "path": f"library/{n}", "bytes": st.st_size, "modified": st.st_mtime})
+        return {"documents": out}
+
+    @app.delete("/v1/library/{name}", dependencies=[v1], tags=["documents"], status_code=202,
+                summary="Remove a document from the library and from the index (job)")
+    async def library_delete(name: str, wait: bool = False):
+        if not LIB_NAME.match(name):
+            raise HTTPException(400, "not a library document name")
+        p = os.path.join(settings.library_dir, name)
+        if not os.path.isfile(p):
+            raise HTTPException(404, "no such document in the library")
+        os.remove(p)
+        return await maybe_wait(submit_index(app, await worker_for("search")), wait)
 
     @app.get("/v1/jobs", dependencies=[v1], tags=["jobs"], summary="Recent jobs, newest first")
     async def jobs_list(limit: int = Query(20, ge=1, le=200)):
@@ -377,20 +460,52 @@ class JobOut(BaseModel):
 
 # ------------------------------------------------------------------------- startup and state
 
+DOC_TYPES = {".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".png", ".jpg", ".jpeg", ".tif", ".tiff",
+             ".bmp", ".webp"}
+LIB_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.md$")
+
+
+def safe_name(filename):
+    """A file name that is safe on disk: no folders, only letters, digits, dot, dash, underscore."""
+    base = os.path.basename(filename.replace("\\", "/")).strip() or "document"
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", base).lstrip("._") or "document"
+    return base[:150]
+
+
+async def ensure_vram(app, job, needed_gb):
+    """Before a GPU worker runs: if the GPU has less free VRAM than it needs, ask Ollama to free its models
+    now instead of waiting for their idle timeout. Without nvidia-smi there is nothing to measure."""
+    gpu = await gpu_status()
+    if not gpu:
+        return
+    free = gpu["vram_total_gb"] - gpu["vram_used_gb"]
+    if free >= needed_gb:
+        return
+    try:
+        loaded = await app.state.ollama.loaded()
+    except Exception:  # noqa: BLE001
+        return
+    for m in loaded:
+        await job.emit("unload", {"model": m["name"], "vram_gb": m["vram_gb"], "free_gb": round(free, 1),
+                                  "needed_gb": needed_gb})
+        with contextlib.suppress(Exception):
+            await app.state.ollama.unload(m["name"])
+
+
+async def run_index(w, job, rebuild=False):
+    result = None
+    async for ev in w.stream("/index", {"rebuild": rebuild}):
+        if ev["type"] == "progress":
+            await job.set_progress(ev["done"], ev["total"], "embedding chunks")
+        elif ev["type"] == "result":
+            result = {k: v for k, v in ev.items() if k != "type"}
+    if result is None:
+        raise JobFailed("the worker ended without a result")
+    return result
+
+
 def submit_index(app, w, rebuild=False):
-
-    async def run(job):
-        result = None
-        async for ev in w.stream("/index", {"rebuild": rebuild}):
-            if ev["type"] == "progress":
-                await job.set_progress(ev["done"], ev["total"], "embedding chunks")
-            elif ev["type"] == "result":
-                result = {k: v for k, v in ev.items() if k != "type"}
-        if result is None:
-            raise JobFailed("the worker ended without a result")
-        return result
-
-    return app.state.jobs.submit("index", {"rebuild": rebuild}, run)
+    return app.state.jobs.submit("index", {"rebuild": rebuild}, lambda job: run_index(w, job, rebuild))
 
 
 async def bootstrap(app):

@@ -11,6 +11,10 @@ flowchart LR
     subgraph stack["docker compose (local-ai-core)"]
         G["gateway<br/>/v1 API · OpenAPI · web UI<br/>jobs + GPU queue"]
         S["search worker<br/>chunks · index · checked citations"]
+        D["documents worker (profile docs)<br/>Docling: layout · tables · OCR"]
+        G -->|"/convert (file in the uploads volume)"| D
+        D -.->|"Markdown into the library"| L[("library")]
+        L --> S
         O[("ollama<br/>bge-m3 · qwen3.5:9b")]
         G -->|"/search /ask /index /selftest"| S
         S -->|"embeddings, chat"| O
@@ -62,6 +66,9 @@ loaded, VRAM in use, last test).
 | `ollama` | the models |
 | `index` | the vector index of the notes (rebuilt from the notes at any time) |
 | `gateway-data` | the result of the last built-in test of each service |
+| `uploads` | files being converted, deleted when their job ends |
+| `library` | converted documents you chose to keep; searched with your notes as `library/…` |
+| `documents-models` | Docling's models |
 | `NOTES_DIR` | your notes, mounted read-only, never written |
 
 Nothing is sent anywhere: no telemetry, and the models are downloaded from the Ollama registry only.

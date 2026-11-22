@@ -23,7 +23,7 @@ RUN pip install --root-user-action=ignore -r /tmp/runtime.txt
 COPY gateway/localai_gateway ./localai_gateway
 COPY gateway/static ./static
 COPY --from=swagger /swagger ./static/vendor/swagger
-RUN useradd --uid 10001 --create-home gateway && mkdir -p /data && chown gateway /data
+RUN useradd --uid 10001 --create-home gateway && mkdir -p /data/uploads /library && chown -R gateway /data /library
 USER gateway
 ENV STATIC_DIR=/srv/static DATA_DIR=/data
 EXPOSE 8090

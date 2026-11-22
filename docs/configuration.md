@@ -22,6 +22,23 @@ Everything is set with environment variables in a `.env` file next to `docker-co
 
 After a change: `docker compose up -d` (only the containers whose settings changed restart).
 
+## Profiles
+
+Light services start by default; heavy ones are compose profiles you turn on:
+
+| Profile | Adds | Image | VRAM |
+|---|---|---|---|
+| (default) | gateway, search, ask, Ollama | ~0.3 GB + Ollama | ~8 GB while answering |
+| `docs` | documents → Markdown (Docling) | ~7 GB | ~3 GB while converting |
+
+```bash
+docker compose --profile docs up -d          # or COMPOSE_PROFILES=docs in .env
+```
+
+A service whose profile is off shows as *off* in **Services** and answers `503`. The GPU queue runs one
+heavy job at a time; before a GPU worker starts, the gateway asks Ollama to free its models if VRAM is
+short.
+
 ## Recipes
 
 **Open to the LAN, with a key.**

@@ -40,6 +40,12 @@ class OllamaClient:
                         "expires_at": m.get("expires_at")})
         return out
 
+    async def unload(self, model):
+        """Asks Ollama to free a model's VRAM now (keep_alive 0)."""
+        async with self._client(30) as c:
+            r = await c.post("/api/generate", json={"model": model, "keep_alive": 0})
+            r.raise_for_status()
+
     async def pull(self, model, on_progress):
         """Downloads a model. Ollama reports progress per layer: on_progress(status, completed, total) gets
         the sum over the layers seen so far, so it describes the whole model."""
@@ -80,8 +86,8 @@ class Worker:
             r.raise_for_status()
             return r.json()
 
-    async def post(self, path, body):
-        async with self._client(httpx.Timeout(120, connect=5)) as c:
+    async def post(self, path, body, timeout=120):
+        async with self._client(httpx.Timeout(timeout, connect=5)) as c:
             try:
                 r = await c.post(path, json=body)
             except httpx.HTTPError as e:

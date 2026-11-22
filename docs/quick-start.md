@@ -118,6 +118,23 @@ page: **Services → Run test**.
 | update | `git pull && docker compose up -d --build` |
 | remove everything, models too | `docker compose down -v` |
 
+## 9. Ask about your PDFs too
+
+The documents service turns PDFs (scanned ones too), images and Office files into Markdown and adds them
+to a library that **Ask** searches together with your notes. It is a separate profile because its image
+is large (about 7 GB):
+
+```bash
+docker compose --profile docs up -d
+```
+
+Open the **Documents** tab, drop a PDF, keep *Add to the library* ticked, then ask about it. Try it with
+the invented bill in `services/documents/documents_worker/selftest/invoice-scan.pdf`, a crooked scan:
+
+![A scanned bill turned into Markdown](img/documents.png)
+
+Details, options and the same steps with `curl`: [Documents](services/documents.md).
+
 ## Next
 
 - Already running [ollama-docker](https://github.com/manzolo/ollama-docker)? Use its Ollama instead of a

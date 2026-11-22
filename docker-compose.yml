@@ -1,6 +1,7 @@
 # local-ai-core — local AI services on your own GPU behind one API and a web UI.
 #
-#   docker compose up -d          gateway + Ollama + search/ask   → http://localhost:8090
+#   docker compose up -d                    gateway + Ollama + search/ask   → http://localhost:8090
+#   docker compose --profile docs up -d     + documents → Markdown (Docling, ~10 GB image, ~3 GB VRAM)
 #
 # Standalone: this file brings its own Ollama and never touches the shared `local-ai-net` network.
 # To use the Ollama of the local-ai-lab family instead, add the override:
@@ -25,9 +26,11 @@ services:
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
       AUTO_PULL_MODELS: ${AUTO_PULL_MODELS:-true}
       AUTO_INDEX: ${AUTO_INDEX:-true}
-      WORKERS: search=http://search:8000
+      WORKERS: search=http://search:8000 documents=http://documents:8000
     volumes:
       - gateway-data:/data
+      - uploads:/data/uploads       # files being converted: deleted when their job ends
+      - library:/library            # converted documents kept for search and ask
     depends_on:
       - search
     deploy:
@@ -53,8 +56,30 @@ services:
       IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
     volumes:
       - index:/data/index
+      - library:/library:ro
       # the notes to search, read-only: point NOTES_DIR at your own folder of Markdown files
       - ${NOTES_DIR:-./examples/notes}:/notes:ro
+    restart: unless-stopped
+
+  documents:
+    # PDF (scanned too), images, DOCX, PPTX, XLSX, HTML → Markdown. Off unless `--profile docs`.
+    profiles: ["docs"]
+    build:
+      context: .
+      dockerfile: services/documents/Dockerfile
+    image: local-ai-core/documents:0.1.0
+    environment:
+      IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
+    volumes:
+      - uploads:/data/uploads
+      - documents-models:/models    # Docling and RapidOCR models, downloaded on first use
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
 
   ollama:
@@ -74,4 +99,7 @@ services:
 volumes:
   gateway-data:
   index:
+  library:
+  uploads:
+  documents-models:
   ollama:

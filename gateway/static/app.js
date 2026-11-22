@@ -24,6 +24,14 @@ const T = {
     last_test: "Last test", never: "never", passed: "passed", failed: "failed", run_test: "Run test",
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
+    vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
+    tab_documents: "Documents", docs_off: "The documents service is off: start the stack with docker compose --profile docs up -d.",
+    drop_title: "Drop a document here, or choose one", drop_types: "PDF (scanned too), image, DOCX, PPTX, XLSX, HTML",
+    ocr: "OCR", ocr_auto: "where text is missing", ocr_force: "every page", ocr_off: "never", ocr_lang: "OCR language",
+    tables: "Tables", add_lib: "Add to the library, to ask about it", convert: "Convert", converting: "Converting…",
+    unloading: "Freeing VRAM: unloading {m}", doc_meta: "{p} page(s) · {t} table(s) · {c} characters · {s} s",
+    in_library: "added to the library as {l}", ask_about: "Ask about it", download: "Download .md", library: "Library",
+    empty_library: "Nothing yet: convert a document with “Add to the library” ticked.", remove: "Remove",
   },
   it: {
     tagline: "AI sulla tua GPU. Niente esce da questa macchina.", api_docs: "Documentazione API",
@@ -47,6 +55,14 @@ const T = {
     last_test: "Ultimo collaudo", never: "mai", passed: "superato", failed: "fallito", run_test: "Collauda",
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
+    vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
+    tab_documents: "Documenti", docs_off: "Il servizio documenti è spento: avvia lo stack con docker compose --profile docs up -d.",
+    drop_title: "Trascina qui un documento, o sceglilo", drop_types: "PDF (anche scansioni), immagini, DOCX, PPTX, XLSX, HTML",
+    ocr: "OCR", ocr_auto: "dove manca il testo", ocr_force: "su ogni pagina", ocr_off: "mai", ocr_lang: "Lingua OCR",
+    tables: "Tabelle", add_lib: "Aggiungi alla libreria, per farci domande", convert: "Converti", converting: "Converto…",
+    unloading: "Libero VRAM: scarico {m}", doc_meta: "{p} pagine · {t} tabelle · {c} caratteri · {s} s",
+    in_library: "aggiunto alla libreria come {l}", ask_about: "Chiedi su questo", download: "Scarica .md", library: "Libreria",
+    empty_library: "Ancora niente: converti un documento con «Aggiungi alla libreria» spuntato.", remove: "Togli",
   },
 };
 
@@ -171,6 +187,7 @@ function excerptHTML(md) {
   const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
   return md.split(/\n\s*\n/).map((block) => {
     const lines = block.split("\n");
+    if (lines.every((l) => /^\s*\|/.test(l))) return mdHTML(block);
     if (lines.every((l) => /^\s*[-*]\s+/.test(l))) return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*]\s+/, ""))}</li>`).join("")}</ul>`;
     return `<p>${inline(lines.join(" "))}</p>`;
   }).join("");
@@ -287,7 +304,7 @@ async function loadServices() {
       ${s.description ? `<p>${esc(s.description)}</p>` : ""}${s.detail ? `<p>${esc(s.detail)}</p>` : ""}
       ${s.model ? `<dl class="facts">
         <dt>${t("model")}</dt><dd>${esc(s.model)}</dd>
-        <dt>${t("vram")}</dt><dd>${t("vram_val", { e: s.vram_gb, u: s.vram_in_use_gb })}</dd>
+        <dt>${t("vram")}</dt><dd>${s.vram_in_use_gb == null ? t("vram_est", { e: s.vram_gb }) + " · " + t(s.loaded ? "loaded" : "not_loaded") : t("vram_val", { e: s.vram_gb, u: s.vram_in_use_gb })}</dd>
         <dt>${t("license")}</dt><dd>${s.license_url ? `<a href="${esc(s.license_url)}" target="_blank" rel="noopener">${esc(s.license)}</a>` : esc(s.license)}</dd>
         <dt>${t("profile")}</dt><dd>${esc(s.profile)}</dd>
         <dt>${t("last_test")}</dt><dd>${test}</dd></dl>` : ""}
@@ -315,6 +332,106 @@ $("#services").addEventListener("click", async (e) => {
   if (card) card.innerHTML = checks;
 });
 
+// ---------------------------------------------------------------------------------- documents
+
+// Markdown as Docling writes it (headings, paragraphs, pipe tables, lists) → HTML, escaped first.
+function mdHTML(md) {
+  const out = [], lines = md.split("\n");
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*\|/.test(l)) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      i--;
+      const body = rows.filter((r) => !/^\s*\|[\s:|-]+\|\s*$/.test(r)).map(cells);
+      const [head, ...rest] = body;
+      out.push(`<table><thead><tr>${head.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${
+        rest.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+    } else if (/^#{1,6}\s/.test(l)) out.push(`<h3>${esc(l.replace(/^#+\s*/, ""))}</h3>`);
+    else if (/^\s*[-*]\s/.test(l)) out.push(`<ul><li>${esc(l.replace(/^\s*[-*]\s/, ""))}</li></ul>`);
+    else if (l.trim()) out.push(`<p>${esc(l)}</p>`);
+  }
+  return out.join("").replace(/<\/ul><ul>/g, "");
+}
+
+let lastDoc = null;
+const drop = $("#drop"), fileIn = $("#doc-file");
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
+drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) { fileIn.files = e.dataTransfer.files; showFile(); } });
+fileIn.addEventListener("change", showFile);
+function showFile() { const f = fileIn.files[0]; if (f) $("#doc-name").textContent = `${f.name} · ${(f.size / 2 ** 20).toFixed(1)} MB`; }
+
+$("#doc-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = fileIn.files[0];
+  if (!f) return;
+  const go = $("#doc-go"), st = $("#doc-state");
+  go.disabled = true; st.textContent = t("converting"); $("#doc-out").hidden = true;
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("ocr", $("#doc-ocr").value);
+  fd.append("lang", $("#doc-lang").value.trim() || "en");
+  fd.append("tables", $("#doc-tables").checked);
+  fd.append("add_to_library", $("#doc-lib").checked);
+  try {
+    const job = await apiJSON("/v1/documents/convert", { method: "POST", body: fd });
+    await follow(job.id, (type, data) => {
+      if (type === "unload") st.textContent = t("unloading", { m: data.model });
+      else if (type === "progress" && data.message === "indexing") st.textContent = t("st_indexing");
+      else if (type === "progress" && data.total) st.textContent = t("indexing", { d: data.done, t: data.total });
+      else if (type === "error") st.textContent = `${t("error")}: ${data}`;
+      else if (type === "result") {
+        lastDoc = data;
+        st.textContent = data.library ? t("in_library", { l: data.library }) : "";
+        $("#doc-meta").textContent = t("doc_meta", { p: data.pages, t: data.tables, c: data.chars, s: data.secs });
+        $("#doc-md").innerHTML = mdHTML(data.markdown);
+        $("#doc-ask").hidden = !data.library;
+        $("#doc-out").hidden = false;
+        loadLibrary();
+      }
+    });
+  } catch (err) { st.textContent = `${t("error")}: ${err.message}`; }
+  go.disabled = false;
+});
+$("#doc-dl").addEventListener("click", () => {
+  if (!lastDoc) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lastDoc.markdown], { type: "text/markdown" }));
+  a.download = lastDoc.filename.replace(/\.[^.]+$/, "") + ".md";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$("#doc-ask").addEventListener("click", () => { showTab("ask"); $("#ask-q").focus(); });
+
+async function loadLibrary() {
+  const ul = $("#library");
+  try {
+    const { documents } = await apiJSON("/v1/library");
+    ul.innerHTML = documents.length ? documents.map((d) => `<li><span>${esc(d.path)}</span>
+      <button class="btn ghost small" data-del="${esc(d.name)}" type="button">${t("remove")}</button></li>`).join("")
+      : `<li class="hint">${t("empty_library")}</li>`;
+  } catch (err) { ul.innerHTML = `<li>${esc(err.message)}</li>`; }
+}
+$("#library").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-del]");
+  if (!b) return;
+  b.disabled = true;
+  try { await apiJSON(`/v1/library/${encodeURIComponent(b.dataset.del)}?wait=true`, { method: "DELETE" }); } catch { /* shown by the reload */ }
+  loadLibrary();
+});
+
+async function loadDocuments() {
+  loadLibrary();
+  try {
+    const { services } = await apiJSON("/v1/services");
+    const d = services.find((s) => s.name === "documents");
+    $("#docs-off").hidden = !!d && d.state !== "off";
+    $("#doc-go").disabled = !d || d.state === "off";
+  } catch { /* status bar shows it */ }
+}
+
 // --------------------------------------------------------------------------------- tabs, i18n
 
 function showTab(name) {
@@ -322,6 +439,7 @@ function showTab(name) {
   document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== `panel-${name}`; });
   store.set("tab", name);
   if (name === "services") loadServices();
+  if (name === "documents") loadDocuments();
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
@@ -334,6 +452,7 @@ function applyLang() {
 $("#lang").addEventListener("click", () => {
   lang = lang === "en" ? "it" : "en"; store.set("lang", lang); applyLang(); refreshStatus();
   if (!$("#panel-services").hidden) loadServices();
+  if (!$("#panel-documents").hidden) loadLibrary();
 });
 
 const THEMES = ["auto", "light", "dark"];

@@ -37,9 +37,14 @@ class Settings:
         self.embed_model = env("EMBED_MODEL", "bge-m3")
         self.llm_model = env("OLLAMA_MODEL", "qwen3.5:9b")
         self.notes_dir = env("NOTES_DIR", "/notes")
+        self.library_dir = env("LIBRARY_DIR", "/library")  # documents converted by the gateway
         self.index_dir = env("INDEX_DIR", "/data/index")
         self.min_score = float(env("SEARCH_MIN_SCORE", "0.35"))
         self.keep_alive = f"{int(env('IDLE_UNLOAD_MINUTES', '10'))}m"
+
+    @property
+    def roots(self):
+        return [("", self.notes_dir), ("library", self.library_dir)]
 
     @property
     def index_base(self):
@@ -105,7 +110,7 @@ class IndexReq(BaseModel):
 @app.post("/index")
 async def index(req: IndexReq):
     s = S()
-    if not os.path.isdir(s.notes_dir):
+    if not any(os.path.isdir(d) for _, d in s.roots):
         raise HTTPException(400, f"notes folder not found: {s.notes_dir}")
 
     async def gen():
@@ -114,7 +119,7 @@ async def index(req: IndexReq):
         async def progress(done, total):
             await q.put({"type": "progress", "done": done, "total": total})
 
-        task = asyncio.create_task(ensure_index(ollama(), s.notes_dir, s.index_base, s.embed_model,
+        task = asyncio.create_task(ensure_index(ollama(), s.roots, s.index_base, s.embed_model,
                                                 req.rebuild, progress))
         while not task.done() or not q.empty():
             try:
@@ -136,7 +141,7 @@ class SearchReq(BaseModel):
 async def run_search(o, q, n, min_score, update=True):
     s = S()
     if update:
-        meta, vec, _ = await ensure_index(o, s.notes_dir, s.index_base, s.embed_model)
+        meta, vec, _ = await ensure_index(o, s.roots, s.index_base, s.embed_model)
     else:
         got = idx.load(s.index_base)
         if not got:

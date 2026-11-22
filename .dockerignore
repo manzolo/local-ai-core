@@ -5,6 +5,7 @@ docs
 examples
 tests
 **/tests
+!services/documents/documents_worker/selftest
 PROMPT.md
 STATO.md
 .env

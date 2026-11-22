@@ -7,7 +7,7 @@ WORKDIR /srv
 COPY requirements/runtime.txt /tmp/runtime.txt
 RUN pip install --root-user-action=ignore -r /tmp/runtime.txt
 COPY services/search/search_worker ./search_worker
-RUN useradd --uid 10001 --create-home worker && mkdir -p /data/index && chown -R worker /data
+RUN useradd --uid 10001 --create-home worker && mkdir -p /data/index /library && chown -R worker /data /library
 USER worker
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \

@@ -95,6 +95,19 @@ curl -s -X POST 'http://localhost:8090/v1/search/index?wait=true' \
 
 Only the files that changed are read again. `"rebuild": true` reads everything.
 
+## Convert a document
+
+Needs the `docs` profile. A multipart upload; the result has the Markdown:
+
+```bash
+curl -s -X POST 'http://localhost:8090/v1/documents/convert?wait=true' \
+  -F file=@my.pdf -F ocr=auto -F add_to_library=true
+```
+
+With `add_to_library=true` the Markdown is saved as `library/my.md` and indexed, so `/v1/ask` can answer
+from it. `GET /v1/library` lists the library, `DELETE /v1/library/my.md` removes a document (and takes it
+out of the index). Options and what happens to the files: [Documents](services/documents.md).
+
 ## Status, services, tests
 
 | Call | What it tells you |
@@ -111,5 +124,6 @@ Only the files that changed are read again. `"rebuild": true` reads everything.
 | `401` | missing or wrong API key |
 | `409` | the index is inconsistent: rebuild it |
 | `413` | request body over `MAX_UPLOAD_MB` |
+| `415` | a file type the documents service does not read |
 | `502` | a job failed (`?wait=true`): the message says why |
 | `503` | the worker for that service is not running |

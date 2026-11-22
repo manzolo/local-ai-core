@@ -62,5 +62,23 @@ else
     echo "  · NOTES_DIR is not the example notes: end-to-end question skipped"
 fi
 
+if py 'import json,sys; sys.exit(not any(s["name"] == "documents" and s["state"] == "ready" for s in json.load(sys.stdin)["services"]))' <<<"$services"; then
+    echo "▸ documents → library → ask"
+    here=$(cd "$(dirname "$0")/.." && pwd)
+    pdf="$here/services/documents/documents_worker/selftest/invoice-scan.pdf"
+    curl -sf -X POST ${LOCAL_AI_API_KEY:+-H "X-API-Key: $LOCAL_AI_API_KEY"} -F "file=@$pdf;filename=collaudo-invoice.pdf" \
+        -F add_to_library=true "$BASE/v1/documents/convert?wait=true" >/dev/null \
+        && ok "scan converted into library/collaudo-invoice.md" || ko "conversion failed"
+    res=$(post "/v1/ask?wait=true" '{"question":"What is the total of the electricity bill?"}')
+    if py 'import json,sys
+r = json.load(sys.stdin)["result"]
+print("   ", r["answer"][:150])
+sys.exit(0 if "71.25" in r["answer"] and any(c["file"] == "library/collaudo-invoice.md" for c in r["cited"]) else 1)' <<<"$res"; then
+        ok "answer from the converted scan, with its source"
+    else ko "answer about the converted document wrong: $res"; fi
+    curl -sf -X DELETE ${LOCAL_AI_API_KEY:+-H "X-API-Key: $LOCAL_AI_API_KEY"} "$BASE/v1/library/collaudo-invoice.md?wait=true" >/dev/null \
+        && ok "removed from the library and the index" || ko "could not remove the test document"
+fi
+
 [ $rc = 0 ] && echo "✓ collaudo passed" || echo "✗ collaudo FAILED"
 exit $rc

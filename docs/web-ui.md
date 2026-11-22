@@ -18,10 +18,14 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
   with a warning.
 - **Search**: search by meaning, with the score and the headings above each hit. **Rebuild index**
   reads every file again.
+- **Documents** (profile `docs`): drop a PDF, image or Office file; the Markdown appears with its
+  tables, can be downloaded, and with *Add to the library* becomes something **Ask** can cite.
 - **Services**: each service with its model, VRAM, license and last test. **Run test** runs its built-in
   test and shows every check as it completes.
 
 ![Search](img/search.png)
+
+![Documents](img/documents.png)
 
 ![Services and a test run](img/services.png)
 

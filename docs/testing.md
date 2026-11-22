@@ -27,6 +27,11 @@ bathroom repair, a vegetable garden):
 | a question the notes do not answer | says so, invents nothing |
 | **introduced error**: an answer citing `[9]` with 6 excerpts | `[9]` flagged as invalid |
 
+For documents, on an invented electricity bill printed to PDF and "scanned": the text PDF gives back its
+title, table and amounts; a figure changed in the expected text makes the comparison fail; the scan is
+read with OCR; with OCR off the scan is refused rather than "read"; a broken PDF is an error message.
+See [Documents](services/documents.md#built-in-test).
+
 ## The mutations
 
 `scripts/mutations.sh` changes one line at a time, runs the tests and puts the line back:
@@ -40,6 +45,11 @@ bathroom repair, a vegetable garden):
 | a wrong API key is accepted | the authentication test |
 | the upload limit ignores chunked bodies | the 413 test |
 | the GPU queue lets every job through | the queue test |
+| the download progress shows one layer, not the model | the startup test |
+| a scan read without OCR counts as converted | the scan test |
+| the documents worker reads files outside the uploads volume | the path test |
+| uploaded files outlive their job | the clean-up test |
+| a full GPU does not make Ollama free its models | the VRAM test |
 
 ## Running the CPU tests locally
 

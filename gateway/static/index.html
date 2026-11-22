@@ -41,6 +41,7 @@
 <nav class="tabs" role="tablist">
   <button role="tab" class="tab" data-tab="ask" aria-selected="true" data-i18n="tab_ask">Ask</button>
   <button role="tab" class="tab" data-tab="search" aria-selected="false" data-i18n="tab_search">Search</button>
+  <button role="tab" class="tab" data-tab="documents" aria-selected="false" data-i18n="tab_documents">Documents</button>
   <button role="tab" class="tab" data-tab="services" aria-selected="false" data-i18n="tab_services">Services</button>
 </nav>
 
@@ -73,6 +74,36 @@
     </div>
     <div class="sub" id="index-state"></div>
     <ol class="hits" id="search-out"></ol>
+  </section>
+
+  <section class="panel" id="panel-documents" role="tabpanel" hidden>
+    <p class="notice" id="docs-off" hidden data-i18n="docs_off">The documents service is off: start the stack with <code>docker compose --profile docs up -d</code>.</p>
+    <form id="doc-form">
+      <label class="drop" id="drop">
+        <input type="file" id="doc-file" required
+          accept=".pdf,.docx,.pptx,.xlsx,.html,.htm,.png,.jpg,.jpeg,.tif,.tiff,.bmp,.webp">
+        <span class="drop-title" data-i18n="drop_title">Drop a document here, or choose one</span>
+        <span class="sub" id="doc-name" data-i18n="drop_types">PDF (scanned too), image, DOCX, PPTX, XLSX, HTML</span>
+      </label>
+      <div class="options">
+        <label><span data-i18n="ocr">OCR</span>
+          <select id="doc-ocr"><option value="auto" data-i18n="ocr_auto">where text is missing</option>
+            <option value="force" data-i18n="ocr_force">every page</option><option value="off" data-i18n="ocr_off">never</option></select></label>
+        <label><span data-i18n="ocr_lang">OCR language</span><input id="doc-lang" value="en" size="4" pattern="[a-z]{2,8}"></label>
+        <label class="check"><input type="checkbox" id="doc-tables" checked><span data-i18n="tables">Tables</span></label>
+        <label class="check"><input type="checkbox" id="doc-lib" checked><span data-i18n="add_lib">Add to the library, to ask about it</span></label>
+        <button class="btn primary" type="submit" id="doc-go" data-i18n="convert">Convert</button>
+      </div>
+    </form>
+    <div class="sub" id="doc-state"></div>
+    <article class="answer" id="doc-out" hidden>
+      <div class="row"><div class="meta" id="doc-meta"></div>
+        <div class="tools"><button class="btn ghost small" id="doc-ask" type="button" hidden data-i18n="ask_about">Ask about it</button>
+          <button class="btn ghost small" id="doc-dl" type="button" data-i18n="download">Download .md</button></div></div>
+      <div class="md" id="doc-md"></div>
+    </article>
+    <h3 data-i18n="library">Library</h3>
+    <ul class="library" id="library"></ul>
   </section>
 
   <section class="panel" id="panel-services" role="tabpanel" hidden>

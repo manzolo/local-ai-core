@@ -34,4 +34,12 @@ mut gateway/localai_gateway/jobs.py '                async with self.gpu:' '    
 mut gateway/localai_gateway/clients.py 'layers[d["digest"]] = (d.get("completed") or 0, d["total"])' \
     'layers = {d["digest"]: (d.get("completed") or 0, d["total"])}' \
     "the download progress shows one layer instead of the whole model"
+mut services/documents/documents_worker/main.py '    if not md.strip():' '    if False:' \
+    "a scan read without OCR counts as converted"
+mut services/documents/documents_worker/main.py '    if not (inside_uploads(req.path) and inside_uploads(req.out)):' '    if False:' \
+    "the documents worker reads files outside the uploads volume"
+mut gateway/localai_gateway/main.py '                shutil.rmtree(job_dir, ignore_errors=True)' '                pass' \
+    "uploaded files outlive their job"
+mut gateway/localai_gateway/main.py '    if free >= needed_gb:' '    if True:' \
+    "a full GPU does not make Ollama free its models"
 exit $rc

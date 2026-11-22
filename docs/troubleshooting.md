@@ -42,6 +42,16 @@ docker compose exec ollama ollama stop qwen3.5:9b
 
 On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in `.env`.
 
+## The Documents tab says the service is off
+
+It runs in the `docs` profile: `docker compose --profile docs up -d` (or `COMPOSE_PROFILES=docs` in
+`.env`). The first build downloads PyTorch with CUDA: about 7 GB.
+
+## A scanned PDF comes back empty
+
+`ocr=off` never reads scans, by design. With `auto`, a PDF that has a broken text layer over the scan
+looks like text to Docling: use `ocr=force`.
+
 ## "index is inconsistent"
 
 The index files do not match (a disk filled up during a write, for example). Rebuild it: **Search →
