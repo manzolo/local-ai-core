@@ -2,9 +2,12 @@
 # Build context: the repository root. The models are not in the image: they download on first use into
 # the volume mounted at /models (HF_HOME), RapidOCR's into /models/rapidocr.
 FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
-ARG DEBIAN_SNAPSHOT=20261121T000000Z
 ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# PyTorch first, with exactly these lines in every torch image (documents, speakers): Docker keeps one copy.
+COPY requirements/torch.txt /tmp/torch.txt
+RUN pip install --root-user-action=ignore -r /tmp/torch.txt
+ARG DEBIAN_SNAPSHOT=20261121T000000Z
 # Debian packages pinned to a snapshot date, so two builds install the same files.
 RUN printf 'Types: deb\nURIs: http://snapshot.debian.org/archive/debian/%s\nSuites: bookworm bookworm-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: http://snapshot.debian.org/archive/debian-security/%s\nSuites: bookworm-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' \
         "$DEBIAN_SNAPSHOT" "$DEBIAN_SNAPSHOT" > /etc/apt/sources.list.d/debian.sources && \

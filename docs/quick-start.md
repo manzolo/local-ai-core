@@ -135,6 +135,22 @@ the invented bill in `services/documents/documents_worker/selftest/invoice-scan.
 
 Details, options and the same steps with `curl`: [Documents](services/documents.md).
 
+## 10. Transcribe audio and video
+
+Two more profiles: `transcribe` turns speech into text and subtitles, `speakers` adds who said what:
+
+```bash
+docker compose --profile transcribe --profile speakers up -d
+```
+
+Open the **Transcribe** tab, drop an audio or video file, tick *Who said what*. Try it with the synthetic
+dialogue in `services/speakers/speakers_worker/selftest/dialogue.ogg`:
+
+![A dialogue transcribed with its two speakers](img/transcribe.png)
+
+The first transcription downloads the Whisper model (about 3 GB). Details and `curl`:
+[Transcribe and speakers](services/transcribe.md).
+
 ## Next
 
 - Already running [ollama-docker](https://github.com/manzolo/ollama-docker)? Use its Ollama instead of a

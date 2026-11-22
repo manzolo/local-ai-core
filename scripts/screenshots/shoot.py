@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 BASE, OUT = sys.argv[1].rstrip("/"), sys.argv[2]
 QUESTION = "How much did the bathroom repair cost, and how did I pay?"
 SCAN = "/fixtures/invoice-scan.pdf"  # the invented bill, as a scan (documents profile only)
+DIALOGUE = "/speech/dialogue.ogg"     # two public-domain synthetic voices (transcribe + speakers profiles)
 DESKTOP = {"width": 1180, "height": 860}
 PHONE = {"width": 390, "height": 844}
 
@@ -90,6 +91,17 @@ with sync_playwright() as pw:
         p = page(b, DESKTOP)
         ask(p, "How much is the electricity bill in total, and when will it be paid?")
         shot(p, "ask-library", full=True)
+
+    if os.path.exists(DIALOGUE):
+        p = page(b, DESKTOP, tab="transcribe")
+        p.wait_for_function("!document.querySelector('#tr-go').disabled", timeout=30_000)
+        p.set_input_files("#tr-file", DIALOGUE)
+        if p.is_enabled("#tr-spk"):
+            p.check("#tr-spk")
+        p.click("#tr-go")
+        p.wait_for_selector("#tr-out:not([hidden])", timeout=600_000)
+        p.wait_for_timeout(3500)
+        shot(p, "transcribe", full=True)
 
     p = b.new_context(viewport=DESKTOP, device_scale_factor=2).new_page()
     p.goto(f"{BASE}/docs")

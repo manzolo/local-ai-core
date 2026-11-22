@@ -20,12 +20,17 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
   reads every file again.
 - **Documents** (profile `docs`): drop a PDF, image or Office file; the Markdown appears with its
   tables, can be downloaded, and with *Add to the library* becomes something **Ask** can cite.
+- **Transcribe** (profiles `transcribe`, `speakers`): drop an audio or video file; the sentences appear
+  with their time and speaker, the progress follows the seconds of audio, and the transcript downloads as
+  TXT, SRT or WebVTT. *Check it says a given text* scores the transcript against an expected text.
 - **Services**: each service with its model, VRAM, license and last test. **Run test** runs its built-in
   test and shows every check as it completes.
 
 ![Search](img/search.png)
 
 ![Documents](img/documents.png)
+
+![Transcribe](img/transcribe.png)
 
 ![Services and a test run](img/services.png)
 

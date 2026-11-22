@@ -32,6 +32,11 @@ title, table and amounts; a figure changed in the expected text makes the compar
 read with OCR; with OCR off the scan is refused rather than "read"; a broken PDF is an error message.
 See [Documents](services/documents.md#built-in-test).
 
+For speech, on synthetic sentences spoken by two public-domain voices: a known sentence is transcribed
+(similarity ≥ 0.85), a different expected text is reported as not matching, a file that is not audio is
+an error; a dialogue of two alternating voices gives two speakers in the right order, one voice stays one
+speaker. See [Transcribe and speakers](services/transcribe.md#built-in-tests).
+
 ## The mutations
 
 `scripts/mutations.sh` changes one line at a time, runs the tests and puts the line back:
@@ -50,6 +55,11 @@ See [Documents](services/documents.md#built-in-test).
 | the documents worker reads files outside the uploads volume | the path test |
 | uploaded files outlive their job | the clean-up test |
 | a full GPU does not make Ollama free its models | the VRAM test |
+| SRT timestamps use a dot instead of a comma | the subtitle test |
+| speakers are not numbered in order of first speech | the numbering test |
+| every voice is put into one speaker | the dialogue test |
+| a transcript that says something else still matches | the expected-text test |
+| `speakers=true` is silently ignored | the speakers tests |
 
 ## Running the CPU tests locally
 

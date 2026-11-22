@@ -47,6 +47,15 @@ On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in 
 It runs in the `docs` profile: `docker compose --profile docs up -d` (or `COMPOSE_PROFILES=docs` in
 `.env`). The first build downloads PyTorch with CUDA: about 7 GB.
 
+## "Who said what" is greyed out
+
+It needs the `speakers` profile: `docker compose --profile transcribe --profile speakers up -d`.
+
+## Two people are found as one (or one as two)
+
+If you know how many people speak, say so: `num_speakers` in the API. Very short sentences (under 0.6 s)
+carry too little voice and take the speaker of the nearest sentence.
+
 ## A scanned PDF comes back empty
 
 `ocr=off` never reads scans, by design. With `auto`, a PDF that has a broken text layer over the scan

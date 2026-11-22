@@ -108,6 +108,18 @@ With `add_to_library=true` the Markdown is saved as `library/my.md` and indexed,
 from it. `GET /v1/library` lists the library, `DELETE /v1/library/my.md` removes a document (and takes it
 out of the index). Options and what happens to the files: [Documents](services/documents.md).
 
+## Transcribe
+
+Needs the `transcribe` profile (and `speakers` for who said what):
+
+```bash
+curl -s -X POST 'http://localhost:8090/v1/transcribe?wait=true' \
+  -F file=@meeting.mp4 -F speakers=true -F language=auto
+```
+
+The result has `text`, `segments` (with `speaker`), `srt` and `vtt`. Add `-F expect="…"` to score the
+transcript against the text it should say. Options: [Transcribe and speakers](services/transcribe.md).
+
 ## Status, services, tests
 
 | Call | What it tells you |
@@ -124,6 +136,6 @@ out of the index). Options and what happens to the files: [Documents](services/d
 | `401` | missing or wrong API key |
 | `409` | the index is inconsistent: rebuild it |
 | `413` | request body over `MAX_UPLOAD_MB` |
-| `415` | a file type the documents service does not read |
+| `415` | a file type the service does not read |
 | `502` | a job failed (`?wait=true`): the message says why |
 | `503` | the worker for that service is not running |

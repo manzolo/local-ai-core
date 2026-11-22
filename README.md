@@ -1,9 +1,9 @@
 # 🧠 Local AI Core
 
 **Local AI services on your own GPU, behind one API and one web page.** Search your notes by meaning, turn
-PDFs and scans into Markdown, and get answers that cite the note or document they come from, with every
-citation checked. More services (transcription, images, voice) join as compose profiles. Nothing leaves
-your machine.
+PDFs and scans into Markdown, get answers that cite the note or document they come from (every citation
+checked), and transcribe audio and video with who said what. More services (images, voice) join as compose
+profiles. Nothing leaves your machine.
 
 [![CI](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml/badge.svg)](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -32,10 +32,12 @@ GPU to searching your own notes.
 | [Search](docs/services/search-ask.md) | find notes by meaning, not by exact words | bge-m3 | ~2 GB | MIT | default |
 | [Ask](docs/services/search-ask.md) | answers only from your notes, every citation checked | qwen3.5:9b | ~8 GB | Apache-2.0 | default |
 | [Documents](docs/services/documents.md) | PDF (scanned too), images, Office, HTML → Markdown; into the library to ask about them | Docling 2.151.1 | ~3 GB | MIT · Apache-2.0 · CDLA-P-2.0 | `docs` |
+| [Transcribe](docs/services/transcribe.md) | audio and video → text, SRT, WebVTT; check against an expected text | faster-whisper large-v3 | ~5 GB | MIT | `transcribe` |
+| [Speakers](docs/services/transcribe.md) | who said what in a transcript | SpeechBrain ECAPA | ~1 GB | Apache-2.0 | `speakers` |
 
-Turn a profile on with `docker compose --profile docs up -d`. The roadmap adds transcription with
-speakers (Whisper), images (ComfyUI), handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each
-in its own profile.
+Turn profiles on with `docker compose --profile docs --profile transcribe --profile speakers up -d`. The
+roadmap adds images (ComfyUI), handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each in its
+own profile.
 
 ## Documentation
 
@@ -51,7 +53,8 @@ in its own profile.
 | [Licenses](docs/licenses.md) | check the license of the code, of each model and of every package |
 | [Troubleshooting](docs/troubleshooting.md) | fix the usual problems |
 
-Services: [Search and Ask](docs/services/search-ask.md) · [Documents](docs/services/documents.md).
+Services: [Search and Ask](docs/services/search-ask.md) · [Documents](docs/services/documents.md) ·
+[Transcribe and speakers](docs/services/transcribe.md).
 
 ## At a glance
 
@@ -60,6 +63,7 @@ flowchart LR
     U[browser · curl] -->|127.0.0.1:8090| G[gateway<br/>API · OpenAPI · web UI]
     G --> S[search worker]
     G --> D[documents worker<br/>profile docs]
+    G --> T[transcriber · speakers<br/>profiles transcribe, speakers]
     S --> O[(ollama<br/>on the GPU)]
     N[/your notes, read-only/] --> S
 ```

@@ -25,6 +25,14 @@ const T = {
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
     vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
+    tab_transcribe: "Transcribe", tr_off: "The transcription service is off: start the stack with docker compose --profile transcribe up -d.",
+    tr_drop: "Drop an audio or video file here, or choose one", tr_types: "WAV, MP3, OGG, M4A, FLAC, MP4, MKV, WebM…",
+    tr_lang: "Language", tr_auto: "detect", tr_speakers: "Who said what", tr_go: "Transcribe",
+    tr_expect_sum: "Check it says a given text", tr_expect_ph: "The text the audio should say: the result shows how close it is.",
+    tr_working: "Transcribing… {d} of {t} s", tr_speakers_working: "Telling the voices apart…",
+    tr_meta: "{lang} · {dur} s · {n} sentences", tr_meta_spk: " · {k} speaker(s)",
+    tr_match: "It says the expected text: similarity {s}.", tr_nomatch: "It does NOT say the expected text: similarity {s}.",
+    tr_spk_off: "speakers profile off", speaker: "Speaker {n}",
     tab_documents: "Documents", docs_off: "The documents service is off: start the stack with docker compose --profile docs up -d.",
     drop_title: "Drop a document here, or choose one", drop_types: "PDF (scanned too), image, DOCX, PPTX, XLSX, HTML",
     ocr: "OCR", ocr_auto: "where text is missing", ocr_force: "every page", ocr_off: "never", ocr_lang: "OCR language",
@@ -56,6 +64,14 @@ const T = {
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
+    tab_transcribe: "Trascrivi", tr_off: "Il servizio di trascrizione è spento: avvia lo stack con docker compose --profile transcribe up -d.",
+    tr_drop: "Trascina qui un audio o un video, o sceglilo", tr_types: "WAV, MP3, OGG, M4A, FLAC, MP4, MKV, WebM…",
+    tr_lang: "Lingua", tr_auto: "riconosci", tr_speakers: "Chi ha detto cosa", tr_go: "Trascrivi",
+    tr_expect_sum: "Controlla che dica un testo", tr_expect_ph: "Il testo che l'audio dovrebbe dire: il risultato mostra quanto ci si avvicina.",
+    tr_working: "Trascrivo… {d} di {t} s", tr_speakers_working: "Distinguo le voci…",
+    tr_meta: "{lang} · {dur} s · {n} frasi", tr_meta_spk: " · {k} parlanti",
+    tr_match: "Dice il testo atteso: somiglianza {s}.", tr_nomatch: "NON dice il testo atteso: somiglianza {s}.",
+    tr_spk_off: "profilo speakers spento", speaker: "Parlante {n}",
     tab_documents: "Documenti", docs_off: "Il servizio documenti è spento: avvia lo stack con docker compose --profile docs up -d.",
     drop_title: "Trascina qui un documento, o sceglilo", drop_types: "PDF (anche scansioni), immagini, DOCX, PPTX, XLSX, HTML",
     ocr: "OCR", ocr_auto: "dove manca il testo", ocr_force: "su ogni pagina", ocr_off: "mai", ocr_lang: "Lingua OCR",
@@ -432,6 +448,80 @@ async function loadDocuments() {
   } catch { /* status bar shows it */ }
 }
 
+// --------------------------------------------------------------------------------- transcribe
+
+let lastTr = null;
+const trDrop = $("#tr-drop"), trFile = $("#tr-file");
+["dragenter", "dragover"].forEach((ev) => trDrop.addEventListener(ev, (e) => { e.preventDefault(); trDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => trDrop.addEventListener(ev, () => trDrop.classList.remove("over")));
+trDrop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) { trFile.files = e.dataTransfer.files; trShow(); } });
+trFile.addEventListener("change", trShow);
+function trShow() { const f = trFile.files[0]; if (f) $("#tr-name").textContent = `${f.name} · ${(f.size / 2 ** 20).toFixed(1)} MB`; }
+const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${(s % 60).toFixed(1).padStart(4, "0")}`;
+
+$("#tr-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = trFile.files[0];
+  if (!f) return;
+  const go = $("#tr-go"), st = $("#tr-state"), bar = $("#tr-bar");
+  go.disabled = true; $("#tr-out").hidden = true; st.textContent = t("converting"); bar.hidden = false;
+  $("#tr-bar i").style.width = "0%";
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("language", $("#tr-lang").value);
+  fd.append("speakers", $("#tr-spk").checked);
+  const exp = $("#tr-expect").value.trim();
+  if (exp) fd.append("expect", exp);
+  try {
+    const job = await apiJSON("/v1/transcribe", { method: "POST", body: fd });
+    await follow(job.id, (type, data) => {
+      if (type === "unload") st.textContent = t("unloading", { m: data.model });
+      else if (type === "progress" && data.message === "speakers") { st.textContent = t("tr_speakers_working"); $("#tr-bar i").style.width = "100%"; }
+      else if (type === "progress" && data.total) {
+        st.textContent = t("tr_working", { d: Math.round(data.done), t: Math.round(data.total) });
+        $("#tr-bar i").style.width = `${(100 * data.done) / data.total}%`;
+      } else if (type === "error") st.textContent = `${t("error")}: ${data}`;
+      else if (type === "result") { lastTr = data; showTranscript(data); st.textContent = ""; }
+    });
+  } catch (err) { st.textContent = `${t("error")}: ${err.message}`; }
+  bar.hidden = true; go.disabled = false;
+});
+
+function showTranscript(r) {
+  $("#tr-meta").textContent = t("tr_meta", { lang: r.language, dur: r.duration, n: r.segments.length })
+    + (r.speakers ? t("tr_meta_spk", { k: r.speakers }) : "");
+  const sc = $("#tr-score");
+  sc.hidden = r.score === undefined;
+  if (r.score !== undefined) {
+    sc.textContent = t(r.matches ? "tr_match" : "tr_nomatch", { s: r.score.toFixed(2) });
+    sc.className = `notice ${r.matches ? "ok" : "bad"}`;
+  }
+  $("#tr-lines").innerHTML = r.segments.map((s) => `<li class="${s.speaker ? "" : "nospk"}"><span class="t">${mmss(s.start)}</span>${
+    s.speaker ? `<span class="spk s${Math.min(s.speaker, 6)}">${t("speaker", { n: s.speaker })}</span>` : ""}<span>${esc(s.text)}</span></li>`).join("");
+  $("#tr-out").hidden = false;
+}
+document.querySelectorAll("[data-dl]").forEach((b) => b.addEventListener("click", () => {
+  if (!lastTr) return;
+  const kind = b.dataset.dl, a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lastTr[kind === "txt" ? "text" : kind]], { type: "text/plain" }));
+  a.download = lastTr.filename.replace(/\.[^.]+$/, "") + "." + kind;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}));
+
+async function loadTranscribe() {
+  try {
+    const { services } = await apiJSON("/v1/services");
+    const tr = services.find((s) => s.name === "transcribe"), sp = services.find((s) => s.name === "speakers");
+    $("#tr-off").hidden = !!tr && tr.state !== "off";
+    $("#tr-go").disabled = !tr || tr.state === "off";
+    const spOn = !!sp && sp.state !== "off";
+    $("#tr-spk").disabled = !spOn;
+    $("#tr-spk").parentElement.title = spOn ? "" : t("tr_spk_off");
+    if (!spOn) $("#tr-spk").checked = false;
+  } catch { /* the status bar shows it */ }
+}
+
 // --------------------------------------------------------------------------------- tabs, i18n
 
 function showTab(name) {
@@ -440,6 +530,7 @@ function showTab(name) {
   store.set("tab", name);
   if (name === "services") loadServices();
   if (name === "documents") loadDocuments();
+  if (name === "transcribe") loadTranscribe();
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 

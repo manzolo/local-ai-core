@@ -18,7 +18,8 @@ Everything is set with environment variables in a `.env` file next to `docker-co
 | `AUTO_PULL_MODELS` | `true` | download missing models at startup |
 | `AUTO_INDEX` | `true` | index the notes at startup |
 | `SEARCH_MIN_SCORE` | `0.35` | minimum similarity of a search hit (0–1) |
-| `IDLE_UNLOAD_MINUTES` | `10` | Ollama frees a model's VRAM after this many minutes unused |
+| `IDLE_UNLOAD_MINUTES` | `10` | Ollama and the GPU workers free a model's VRAM after this many minutes unused |
+| `WHISPER_MODEL` | `large-v3` | the faster-whisper model (`small`, `medium`, `large-v3`…): smaller is faster and less accurate |
 
 After a change: `docker compose up -d` (only the containers whose settings changed restart).
 
@@ -30,9 +31,11 @@ Light services start by default; heavy ones are compose profiles you turn on:
 |---|---|---|---|
 | (default) | gateway, search, ask, Ollama | ~0.3 GB + Ollama | ~8 GB while answering |
 | `docs` | documents → Markdown (Docling) | ~7 GB | ~3 GB while converting |
+| `transcribe` | speech → text and subtitles (faster-whisper) | ~3.4 GB | ~5 GB while transcribing |
+| `speakers` | who said what (SpeechBrain) | ~6.6 GB, PyTorch shared with `docs` | ~1 GB |
 
 ```bash
-docker compose --profile docs up -d          # or COMPOSE_PROFILES=docs in .env
+docker compose --profile docs up -d          # or COMPOSE_PROFILES=docs,transcribe,speakers in .env
 ```
 
 A service whose profile is off shows as *off* in **Services** and answers `503`. The GPU queue runs one

@@ -11,7 +11,8 @@ import os
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = {"runtime.txt": "gateway, search", "documents.txt": "documents", "dev.txt": "tests only"}
+FILES = {"runtime.txt": "gateway, search", "torch.txt": "documents, speakers", "documents.txt": "documents",
+         "transcriber.txt": "transcriber", "speakers.txt": "speakers", "dev.txt": "tests only"}
 
 
 def pins():

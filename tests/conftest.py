@@ -71,3 +71,76 @@ def documents_worker(tmp_path, monkeypatch):
     monkeypatch.setattr(docs, "UPLOADS", str(uploads))
     docs.app.state.converter = FakeConverter()
     return docs.app
+
+
+# ------------------------------------------------------------------ speech: fake Whisper and fake ECAPA
+# A fake "audio" file is text: one line per sentence, "START END VOICE text…"; NOTAUDIO cannot be decoded.
+
+class FakeAudio(list):
+    """The sentences of a fake file; its length is the number of 16 kHz samples the audio would have."""
+
+    def __len__(self):
+        return int((self[-1][1] if list.__len__(self) else 0) * 16000) + 16000
+
+
+def fake_decode_factory(error_cls):
+    def decode(path):
+        raw = open(path, encoding="utf-8", errors="replace").read()
+        if "NOTAUDIO" in raw:
+            raise error_cls("cannot decode the audio: Invalid data found when processing input")
+        out = FakeAudio()
+        for ln in raw.splitlines():
+            parts = ln.split(" ", 3)
+            try:
+                if len(parts) == 4:
+                    out.append((float(parts[0]), float(parts[1]), parts[2], parts[3]))
+            except ValueError:  # a real (binary) audio file read as text: no sentences
+                continue
+        return out
+    return decode
+
+
+class FakeWhisper:
+    loaded = False
+    device = "cpu"
+
+    def transcribe(self, audio, language, on_segment):
+        self.loaded = True
+        duration = audio[-1][1] if list.__len__(audio) else 0.0
+        for start, end, _voice, text in audio:
+            on_segment(start, end, text, duration)
+        return ("en" if language == "auto" else language), duration
+
+    def unload(self):
+        self.loaded = False
+        return True
+
+
+class FakeEncoder:
+    """A voice fingerprint per voice letter: A and B far apart, small differences per sentence."""
+    loaded = False
+    device = "cpu"
+
+    def embed(self, wav, start, end):
+        import numpy as np
+        voice = next(v for s, e, v, _ in wav if abs(s - start) < 0.01)
+        base = {"A": [1.0, 0.0, 0.0], "B": [0.0, 1.0, 0.0], "C": [0.0, 0.0, 1.0]}[voice]
+        v = np.array(base) + 0.05 * np.array([start % 1, end % 1, 0.3])
+        return v / np.linalg.norm(v)
+
+    def unload(self):
+        return False
+
+
+@pytest.fixture
+def speech_workers(tmp_path, monkeypatch):
+    from speakers_worker import main as spk
+    from transcriber_worker import main as tr
+    uploads = tmp_path / "uploads"
+    uploads.mkdir(exist_ok=True)
+    for mod, err in ((tr, tr.TranscribeError), (spk, spk.SpeakersError)):
+        monkeypatch.setattr(mod, "UPLOADS", str(uploads))
+        monkeypatch.setattr(mod, "decode", fake_decode_factory(err))
+    tr.app.state.engine = FakeWhisper()
+    spk.app.state.engine = FakeEncoder()
+    return tr.app, spk.app, uploads

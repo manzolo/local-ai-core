@@ -9,4 +9,5 @@ docker build -q -t local-ai-core/screenshots scripts/screenshots >/dev/null
 mkdir -p docs/img
 docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp \
     -v "$PWD/docs/img:/out" -v "$PWD/services/documents/documents_worker/selftest:/fixtures:ro" \
+    -v "$PWD/services/speakers/speakers_worker/selftest:/speech:ro" \
     local-ai-core/screenshots "$BASE" /out "$@"

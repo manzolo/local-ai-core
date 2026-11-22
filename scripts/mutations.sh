@@ -42,4 +42,14 @@ mut gateway/localai_gateway/main.py '                shutil.rmtree(job_dir, igno
     "uploaded files outlive their job"
 mut gateway/localai_gateway/main.py '    if free >= needed_gb:' '    if True:' \
     "a full GPU does not make Ollama free its models"
+mut gateway/localai_gateway/subtitles.py "return f\"{h:02d}:{m:02d}:{s:02d}{sep}{ms:03d}\"" "return f\"{h:02d}:{m:02d}:{s:02d}.{ms:03d}\"" \
+    "SRT timestamps use a dot instead of a comma"
+mut services/speakers/speakers_worker/main.py '        order.setdefault(label, len(order) + 1)' '        order.setdefault(label, label + 1)' \
+    "speakers are not numbered in order of first speech"
+mut services/speakers/speakers_worker/main.py '    if len(X) == 1 or n == 1:' '    if True:' \
+    "every voice is put into one speaker"
+mut services/transcriber/transcriber_worker/main.py '        result["matches"] = result["score"] >= MATCH' '        result["matches"] = True' \
+    "a transcript that says something else still matches"
+mut gateway/localai_gateway/main.py '        sw = await worker_for("speakers") if speakers else None' '        sw = None' \
+    "speakers=true is silently ignored"
 exit $rc

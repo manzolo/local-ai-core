@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import subtitles
 from .clients import OllamaClient, Worker, WorkerHTTPError, gpu_status, model_key
 from .jobs import JobFailed, JobStore
 
@@ -45,7 +46,9 @@ class Settings:
         self.library_dir = env.get("LIBRARY_DIR", "/library")
         self.static_dir = env.get("STATIC_DIR", os.path.join(os.path.dirname(HERE), "static"))
         self.workers = {}
-        for item in env.get("WORKERS", "search=http://search:8000 documents=http://documents:8000").split():
+        default_workers = ("search=http://search:8000 documents=http://documents:8000 "
+                           "transcriber=http://transcriber:8000 speakers=http://speakers:8000")
+        for item in env.get("WORKERS", default_workers).split():
             name, _, url = item.partition("=")
             if name and url:
                 self.workers[name] = url
@@ -167,7 +170,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         """The worker that offers a service; asks the workers again when it is not known yet."""
         for attempt in range(2):
             for w in app.state.workers.values():
-                if service in w.services or (not w.services and w.name == service):
+                if service in w.services or w.name == service:  # a service name, or the worker's own
                     return w
             if attempt == 0:
                 for w in app.state.workers.values():
@@ -311,13 +314,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         if ext not in DOC_TYPES:
             raise HTTPException(415, f"unsupported file type {ext or '(none)'}: one of {', '.join(sorted(DOC_TYPES))}")
         w = await worker_for("documents")
-        job_dir = os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
-        os.makedirs(job_dir, exist_ok=True)
-        src = os.path.join(job_dir, name)
-        with open(src, "wb") as f:
-            while chunk := await file.read(2**20):
-                f.write(chunk)
-        await file.close()
+        job_dir, src = await save_upload(settings, file, name)
 
         async def run(job):
             try:
@@ -345,6 +342,63 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                 shutil.rmtree(job_dir, ignore_errors=True)  # uploads never outlive their job
 
         job = app.state.jobs.submit("documents", {"filename": name, "ocr": ocr, "add_to_library": add_to_library}, run)
+        return await maybe_wait(job, wait)
+
+    @app.post("/v1/transcribe", dependencies=[v1], tags=["speech"], status_code=202,
+              summary="Audio or video → text, SRT and WebVTT; optionally who said what, and a check against "
+                      "the text the speech should say (job)")
+    async def transcribe(
+            file: UploadFile = File(description="audio or video"),
+            language: str = Form("auto", pattern=r"^(auto|[a-z]{2,3})$", description="spoken language, or auto"),
+            speakers: bool = Form(False, description="split the transcript by speaker (profile `speakers`)"),
+            num_speakers: int = Form(0, ge=0, le=20, description="exact number of speakers; 0 = find out"),
+            expect: str | None = Form(None, max_length=20000,
+                                      description="the text the speech should say: the result scores the match"),
+            wait: bool = False):
+        name = safe_name(file.filename or "audio")
+        ext = os.path.splitext(name)[1].lower()
+        if ext not in AUDIO_TYPES:
+            raise HTTPException(415, f"unsupported file type {ext or '(none)'}: "
+                                     f"one of {', '.join(sorted(AUDIO_TYPES))}")
+        w = await worker_for("transcribe")
+        sw = await worker_for("speakers") if speakers else None
+        job_dir, src = await save_upload(settings, file, name)
+
+        async def run(job):
+            try:
+                await ensure_vram(app, job, 5)
+                res = None
+                body = {"path": src, "language": language, "expect": expect}
+                async for ev in w.stream("/transcribe", body):
+                    if ev["type"] == "progress":
+                        await job.set_progress(ev["done"], ev["total"], "transcribing")
+                    elif ev["type"] == "result":
+                        res = ev
+                if res is None:
+                    raise JobFailed("the transcriber ended without a result")
+                segs = [{"start": a, "end": b, "text": t} for a, b, t in res["segments"]]
+                n_speakers = None
+                if sw and segs:
+                    await job.set_progress(res["duration"], res["duration"], "speakers")
+                    await ensure_vram(app, job, 1)
+                    try:
+                        att = await sw.post("/attribute", {"path": src, "segments": res["segments"],
+                                                           "n": num_speakers}, timeout=1800)
+                    except WorkerHTTPError as e:
+                        raise JobFailed(e.detail) from None
+                    n_speakers = att["speakers"]
+                    for seg, label in zip(segs, att["labels"], strict=True):
+                        seg["speaker"] = label
+                out = {"filename": name, "language": res["language"], "duration": res["duration"],
+                       "speakers": n_speakers, "segments": segs, "text": subtitles.text(segs),
+                       "srt": subtitles.srt(segs), "vtt": subtitles.vtt(segs)}
+                if expect is not None:
+                    out.update(expected=expect, score=res["score"], matches=res["matches"])
+                return out
+            finally:
+                shutil.rmtree(job_dir, ignore_errors=True)
+
+        job = app.state.jobs.submit("transcribe", {"filename": name, "speakers": speakers}, run)
         return await maybe_wait(job, wait)
 
     @app.get("/v1/library", dependencies=[v1], tags=["documents"], summary="Documents added to the library")
@@ -460,9 +514,23 @@ class JobOut(BaseModel):
 
 # ------------------------------------------------------------------------- startup and state
 
+AUDIO_TYPES = {".wav", ".mp3", ".ogg", ".oga", ".opus", ".m4a", ".flac", ".aac", ".wma", ".webm", ".mp4",
+               ".mkv", ".mov", ".avi"}
 DOC_TYPES = {".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".png", ".jpg", ".jpeg", ".tif", ".tiff",
              ".bmp", ".webp"}
 LIB_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.md$")
+
+
+async def save_upload(settings, file, name):
+    """The upload into its own folder of the uploads volume: (folder, path). The job deletes the folder."""
+    job_dir = os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
+    os.makedirs(job_dir, exist_ok=True)
+    src = os.path.join(job_dir, name)
+    with open(src, "wb") as f:
+        while chunk := await file.read(2**20):
+            f.write(chunk)
+    await file.close()
+    return job_dir, src
 
 
 def safe_name(filename):

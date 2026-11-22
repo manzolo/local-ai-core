@@ -7,18 +7,22 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | Package | Version | License | Used by |
 |---|---|---|---|
 | [accelerate](https://pypi.org/project/accelerate/) | `1.16.0` | Apache Software License | documents |
-| [annotated-doc](https://pypi.org/project/annotated-doc/) | `0.0.7` | MIT | documents, gateway, search |
-| [annotated-types](https://pypi.org/project/annotated-types/) | `0.8.0` | MIT | documents, gateway, search |
-| [anyio](https://pypi.org/project/anyio/) | `4.16.0` | MIT | documents, gateway, search |
+| [annotated-doc](https://pypi.org/project/annotated-doc/) | `0.0.7` | MIT | documents, gateway, search, speakers, transcriber |
+| [annotated-types](https://pypi.org/project/annotated-types/) | `0.8.0` | MIT | documents, gateway, search, speakers, transcriber |
+| [anyio](https://pypi.org/project/anyio/) | `4.16.0` | MIT | documents, gateway, search, speakers, transcriber |
 | [attrs](https://pypi.org/project/attrs/) | `26.1.0` | MIT | documents |
+| [av](https://pypi.org/project/av/) | `19.0.2` | BSD-3-Clause | transcriber |
 | [beautifulsoup4](https://pypi.org/project/beautifulsoup4/) | `4.15.0` | MIT License | documents |
-| [certifi](https://pypi.org/project/certifi/) | `2026.11.20` | Mozilla Public License 2.0 (MPL 2.0) | documents, gateway, search |
-| [charset-normalizer](https://pypi.org/project/charset-normalizer/) | `3.5.2` | MIT | documents |
-| [click](https://pypi.org/project/click/) | `8.5.1` | BSD-3-Clause | documents, gateway, search |
+| [certifi](https://pypi.org/project/certifi/) | `2026.11.20` | Mozilla Public License 2.0 (MPL 2.0) | documents, gateway, search, speakers, transcriber |
+| [cffi](https://pypi.org/project/cffi/) | `2.1.1` | MIT-0 | speakers |
+| [charset-normalizer](https://pypi.org/project/charset-normalizer/) | `3.5.2` | MIT | documents, speakers |
+| [click](https://pypi.org/project/click/) | `8.5.1` | BSD-3-Clause | documents, gateway, search, speakers, transcriber |
+| [cloudpickle](https://pypi.org/project/cloudpickle/) | `3.1.3` | BSD-3-Clause | speakers |
 | [colorlog](https://pypi.org/project/colorlog/) | `6.12.0` | MIT License | documents |
-| [cuda-bindings](https://pypi.org/project/cuda-bindings/) | `13.5.0` | Apache-2.0 | documents |
-| [cuda-pathfinder](https://pypi.org/project/cuda-pathfinder/) | `1.9.1` | Apache-2.0 | documents |
-| [cuda-toolkit](https://pypi.org/project/cuda-toolkit/) | `13.0.3.0` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents |
+| [ctranslate2](https://pypi.org/project/ctranslate2/) | `4.8.3` | MIT | transcriber |
+| [cuda-bindings](https://pypi.org/project/cuda-bindings/) | `13.5.0` | Apache-2.0 | documents, documents, speakers, speakers |
+| [cuda-pathfinder](https://pypi.org/project/cuda-pathfinder/) | `1.9.1` | Apache-2.0 | documents, documents, speakers, speakers |
+| [cuda-toolkit](https://pypi.org/project/cuda-toolkit/) | `13.0.3.0` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents, documents, speakers, speakers |
 | [defusedxml](https://pypi.org/project/defusedxml/) | `0.7.1` | Python Software Foundation License | documents |
 | [dill](https://pypi.org/project/dill/) | `0.4.1` | BSD License | documents |
 | [doclang](https://pypi.org/project/doclang/) | `0.10.1` | Apache-2.0 | documents |
@@ -29,18 +33,26 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [docling-slim](https://pypi.org/project/docling-slim/) | `2.151.1` | MIT | documents |
 | [et_xmlfile](https://pypi.org/project/et_xmlfile/) | `2.0.0` | MIT License | documents |
 | [Faker](https://pypi.org/project/Faker/) | `40.63.0` | MIT License | documents |
-| [fastapi](https://pypi.org/project/fastapi/) | `0.165.0` | MIT | documents, gateway, search |
-| [filelock](https://pypi.org/project/filelock/) | `4.2.12` | MIT | documents |
+| [fastapi](https://pypi.org/project/fastapi/) | `0.165.0` | MIT | documents, gateway, search, speakers, transcriber |
+| [faster-whisper](https://pypi.org/project/faster-whisper/) | `1.2.1` | MIT License | transcriber |
+| [filelock](https://pypi.org/project/filelock/) | `4.2.12` | MIT | documents, documents, speakers, speakers |
+| [filelock](https://pypi.org/project/filelock/) | `4.3.0` | MIT | transcriber |
 | [filetype](https://pypi.org/project/filetype/) | `1.2.0` | MIT License | documents |
-| [fsspec](https://pypi.org/project/fsspec/) | `2026.9.0` | BSD-3-Clause | documents |
-| [h11](https://pypi.org/project/h11/) | `0.16.0` | MIT License | documents, gateway, search |
-| [hf-xet](https://pypi.org/project/hf-xet/) | `1.8.0` | Apache-2.0 | documents |
-| [httpcore](https://pypi.org/project/httpcore/) | `1.0.9` | BSD-3-Clause | documents, gateway, search |
-| [httpx](https://pypi.org/project/httpx/) | `0.28.1` | BSD License | documents, gateway, search |
-| [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `1.33.0` | Apache Software License | documents |
-| [idna](https://pypi.org/project/idna/) | `3.20` | BSD-3-Clause | documents, gateway, search |
+| [flatbuffers](https://pypi.org/project/flatbuffers/) | `25.12.19` | Apache Software License | transcriber |
+| [fsspec](https://pypi.org/project/fsspec/) | `2026.9.0` | BSD-3-Clause | documents, documents, speakers, speakers, transcriber |
+| [h11](https://pypi.org/project/h11/) | `0.16.0` | MIT License | documents, gateway, search, speakers, transcriber |
+| [hf-xet](https://pypi.org/project/hf-xet/) | `1.8.0` | Apache-2.0 | documents, speakers, transcriber |
+| [httpcore](https://pypi.org/project/httpcore/) | `1.0.9` | BSD-3-Clause | documents, gateway, search, speakers, transcriber |
+| [httpcore2](https://pypi.org/project/httpcore2/) | `2.16.2` | BSD-3-Clause | transcriber |
+| [httpx](https://pypi.org/project/httpx/) | `0.28.1` | BSD License | documents, gateway, search, speakers, transcriber |
+| [httpx2](https://pypi.org/project/httpx2/) | `2.16.2` | BSD-3-Clause | transcriber |
+| [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `1.33.0` | Apache Software License | documents, speakers |
+| [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `2.4.0` | Apache Software License | transcriber |
+| [HyperPyYAML](https://pypi.org/project/HyperPyYAML/) | `1.2.3` | Apache Software License | speakers |
+| [idna](https://pypi.org/project/idna/) | `3.20` | BSD-3-Clause | documents, gateway, search, speakers, transcriber |
 | [iniconfig](https://pypi.org/project/iniconfig/) | `2.3.1` | MIT | tests only |
-| [Jinja2](https://pypi.org/project/Jinja2/) | `3.1.6` | BSD License | documents |
+| [Jinja2](https://pypi.org/project/Jinja2/) | `3.1.6` | BSD License | documents, documents, speakers, speakers |
+| [joblib](https://pypi.org/project/joblib/) | `1.6.0` | BSD-3-Clause | speakers, tests only |
 | [jsonref](https://pypi.org/project/jsonref/) | `1.1.0` | MIT | documents |
 | [jsonschema](https://pypi.org/project/jsonschema/) | `4.26.0` | MIT | documents |
 | [jsonschema-specifications](https://pypi.org/project/jsonschema-specifications/) | `2025.9.1` | MIT | documents |
@@ -50,44 +62,51 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [mail-parser](https://pypi.org/project/mail-parser/) | `4.11.0` | Apache-2.0 | documents |
 | [markdown-it-py](https://pypi.org/project/markdown-it-py/) | `4.3.0` | MIT License | documents |
 | [marko](https://pypi.org/project/marko/) | `2.2.5` | MIT | documents |
-| [MarkupSafe](https://pypi.org/project/MarkupSafe/) | `3.0.4` | BSD-3-Clause | documents |
+| [MarkupSafe](https://pypi.org/project/MarkupSafe/) | `3.0.4` | BSD-3-Clause | documents, documents, speakers, speakers |
 | [mdurl](https://pypi.org/project/mdurl/) | `0.1.2` | MIT License | documents |
 | [mpire](https://pypi.org/project/mpire/) | `2.10.2` | MIT License | documents |
-| [mpmath](https://pypi.org/project/mpmath/) | `1.3.0` | BSD License | documents |
+| [mpmath](https://pypi.org/project/mpmath/) | `1.3.0` | BSD License | documents, documents, speakers, speakers |
 | [multiprocess](https://pypi.org/project/multiprocess/) | `0.70.19` | BSD License | documents |
-| [networkx](https://pypi.org/project/networkx/) | `3.7` | BSD-3-Clause | documents |
-| [numpy](https://pypi.org/project/numpy/) | `2.5.5` | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | documents |
-| [nvidia-cublas](https://pypi.org/project/nvidia-cublas/) | `13.1.1.3` | LicenseRef-NVIDIA-Proprietary | documents |
-| [nvidia-cuda-cupti](https://pypi.org/project/nvidia-cuda-cupti/) | `13.0.85` | Other/Proprietary License | documents |
-| [nvidia-cuda-nvrtc](https://pypi.org/project/nvidia-cuda-nvrtc/) | `13.0.88` | Other/Proprietary License | documents |
-| [nvidia-cuda-nvrtc-cu12](https://pypi.org/project/nvidia-cuda-nvrtc-cu12/) | `12.9.86` | Other/Proprietary License | documents |
-| [nvidia-cuda-runtime](https://pypi.org/project/nvidia-cuda-runtime/) | `13.0.96` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents |
-| [nvidia-cudnn-cu13](https://pypi.org/project/nvidia-cudnn-cu13/) | `9.24.0.43` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents |
-| [nvidia-cufft](https://pypi.org/project/nvidia-cufft/) | `12.0.0.61` | Other/Proprietary License | documents |
-| [nvidia-cufile](https://pypi.org/project/nvidia-cufile/) | `1.15.1.6` | Other/Proprietary License | documents |
-| [nvidia-curand](https://pypi.org/project/nvidia-curand/) | `10.4.0.35` | Other/Proprietary License | documents |
-| [nvidia-cusolver](https://pypi.org/project/nvidia-cusolver/) | `12.0.4.66` | Other/Proprietary License | documents |
-| [nvidia-cusparse](https://pypi.org/project/nvidia-cusparse/) | `12.6.3.3` | Other/Proprietary License | documents |
-| [nvidia-cusparselt-cu13](https://pypi.org/project/nvidia-cusparselt-cu13/) | `0.8.1` | NVIDIA Proprietary Software | documents |
-| [nvidia-nccl-cu13](https://pypi.org/project/nvidia-nccl-cu13/) | `2.30.7` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents |
-| [nvidia-nvjitlink](https://pypi.org/project/nvidia-nvjitlink/) | `13.5.37` | LicenseRef-NVIDIA-Proprietary | documents |
-| [nvidia-nvshmem-cu13](https://pypi.org/project/nvidia-nvshmem-cu13/) | `3.4.5` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents |
-| [nvidia-nvtx](https://pypi.org/project/nvidia-nvtx/) | `13.0.85` | Other/Proprietary License | documents |
+| [narwhals](https://pypi.org/project/narwhals/) | `2.29.0` | MIT | speakers |
+| [networkx](https://pypi.org/project/networkx/) | `3.7` | BSD-3-Clause | documents, documents, speakers, speakers |
+| [numpy](https://pypi.org/project/numpy/) | `2.5.5` | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | documents, speakers, tests only |
+| [numpy](https://pypi.org/project/numpy/) | `2.3.5` | BSD License | transcriber |
+| [nvidia-cublas](https://pypi.org/project/nvidia-cublas/) | `13.1.1.3` | LicenseRef-NVIDIA-Proprietary | documents, documents, speakers, speakers |
+| [nvidia-cublas-cu12](https://pypi.org/project/nvidia-cublas-cu12/) | `12.9.2.10` | LicenseRef-NVIDIA-Proprietary | transcriber |
+| [nvidia-cuda-cupti](https://pypi.org/project/nvidia-cuda-cupti/) | `13.0.85` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cuda-nvrtc](https://pypi.org/project/nvidia-cuda-nvrtc/) | `13.0.88` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cuda-nvrtc-cu12](https://pypi.org/project/nvidia-cuda-nvrtc-cu12/) | `12.9.86` | Other/Proprietary License | documents, transcriber |
+| [nvidia-cuda-runtime](https://pypi.org/project/nvidia-cuda-runtime/) | `13.0.96` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents, documents, speakers, speakers |
+| [nvidia-cudnn-cu12](https://pypi.org/project/nvidia-cudnn-cu12/) | `9.27.0.42` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | transcriber |
+| [nvidia-cudnn-cu13](https://pypi.org/project/nvidia-cudnn-cu13/) | `9.24.0.43` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents, documents, speakers, speakers |
+| [nvidia-cufft](https://pypi.org/project/nvidia-cufft/) | `12.0.0.61` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cufile](https://pypi.org/project/nvidia-cufile/) | `1.15.1.6` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-curand](https://pypi.org/project/nvidia-curand/) | `10.4.0.35` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cusolver](https://pypi.org/project/nvidia-cusolver/) | `12.0.4.66` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cusparse](https://pypi.org/project/nvidia-cusparse/) | `12.6.3.3` | Other/Proprietary License | documents, documents, speakers, speakers |
+| [nvidia-cusparselt-cu13](https://pypi.org/project/nvidia-cusparselt-cu13/) | `0.8.1` | NVIDIA Proprietary Software | documents, documents, speakers, speakers |
+| [nvidia-nccl-cu13](https://pypi.org/project/nvidia-nccl-cu13/) | `2.30.7` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents, documents, speakers, speakers |
+| [nvidia-nvjitlink](https://pypi.org/project/nvidia-nvjitlink/) | `13.5.37` | LicenseRef-NVIDIA-Proprietary | documents, documents, speakers, speakers |
+| [nvidia-nvshmem-cu13](https://pypi.org/project/nvidia-nvshmem-cu13/) | `3.4.5` | NVIDIA software, NVIDIA terms (no license metadata on PyPI) | documents, documents, speakers, speakers |
+| [nvidia-nvtx](https://pypi.org/project/nvidia-nvtx/) | `13.0.85` | Other/Proprietary License | documents, documents, speakers, speakers |
 | [olefile](https://pypi.org/project/olefile/) | `0.47` | BSD License | documents |
 | [omegaconf](https://pypi.org/project/omegaconf/) | `2.4.0` | BSD License | documents |
+| [onnxruntime](https://pypi.org/project/onnxruntime/) | `1.32.0` | MIT License | transcriber |
 | [opencv-python-headless](https://pypi.org/project/opencv-python-headless/) | `5.1.0.95` | Apache Software License | documents |
 | [openpyxl](https://pypi.org/project/openpyxl/) | `3.1.5` | MIT License | documents |
-| [opentelemetry-api](https://pypi.org/project/opentelemetry-api/) | `1.45.2` | Apache-2.0 | documents, gateway, search |
-| [packaging](https://pypi.org/project/packaging/) | `26.3` | Apache-2.0 OR BSD-2-Clause | documents, tests only |
+| [opentelemetry-api](https://pypi.org/project/opentelemetry-api/) | `1.45.2` | Apache-2.0 | documents, gateway, search, speakers, transcriber |
+| [packaging](https://pypi.org/project/packaging/) | `26.3` | Apache-2.0 OR BSD-2-Clause | documents, speakers, tests only, transcriber |
 | [pandas](https://pypi.org/project/pandas/) | `3.1.1` | BSD-3-Clause | documents |
 | [pillow](https://pypi.org/project/pillow/) | `13.0.0` | MIT-CMU | documents |
 | [pluggy](https://pypi.org/project/pluggy/) | `1.7.0` | MIT License | documents, tests only |
 | [polyfactory](https://pypi.org/project/polyfactory/) | `3.5.0` | MIT License | documents |
+| [protobuf](https://pypi.org/project/protobuf/) | `7.36.2` | 3-Clause BSD License | transcriber |
 | [psutil](https://pypi.org/project/psutil/) | `7.2.2` | BSD-3-Clause | documents |
 | [pyclipper](https://pypi.org/project/pyclipper/) | `1.4.0` | OSI Approved; MIT License | documents |
-| [pydantic](https://pypi.org/project/pydantic/) | `2.14.4` | MIT | documents, gateway, search |
+| [pycparser](https://pypi.org/project/pycparser/) | `3.12` | BSD-3-Clause | speakers |
+| [pydantic](https://pypi.org/project/pydantic/) | `2.14.4` | MIT | documents, gateway, search, speakers, transcriber |
 | [pydantic-settings](https://pypi.org/project/pydantic-settings/) | `2.16.3` | MIT | documents |
-| [pydantic_core](https://pypi.org/project/pydantic_core/) | `2.50.5` | MIT | documents, gateway, search |
+| [pydantic_core](https://pypi.org/project/pydantic_core/) | `2.50.5` | MIT | documents, gateway, search, speakers, transcriber |
 | [Pygments](https://pypi.org/project/Pygments/) | `2.21.0` | BSD-2-Clause | documents, tests only |
 | [pylatexenc](https://pypi.org/project/pylatexenc/) | `2.11` | MIT License | documents |
 | [pypdfium2](https://pypi.org/project/pypdfium2/) | `5.15.2` | BSD-3-Clause, Apache-2.0, dependency licenses | documents |
@@ -95,45 +114,54 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [python-dateutil](https://pypi.org/project/python-dateutil/) | `4.0.0` | BSD-3-Clause | documents |
 | [python-docx](https://pypi.org/project/python-docx/) | `1.2.0` | MIT License | documents |
 | [python-dotenv](https://pypi.org/project/python-dotenv/) | `1.2.4` | BSD-3-Clause | documents |
-| [python-multipart](https://pypi.org/project/python-multipart/) | `0.0.33` | Apache-2.0 | gateway, search |
+| [python-multipart](https://pypi.org/project/python-multipart/) | `0.0.33` | Apache-2.0 | gateway, search, speakers, transcriber |
 | [python-oxmsg](https://pypi.org/project/python-oxmsg/) | `0.0.2` | MIT License | documents |
 | [python-pptx](https://pypi.org/project/python-pptx/) | `1.0.2` | MIT License | documents |
-| [PyYAML](https://pypi.org/project/PyYAML/) | `6.0.4` | MIT License | documents |
+| [PyYAML](https://pypi.org/project/PyYAML/) | `6.0.4` | MIT License | documents, speakers, transcriber |
 | [rapidocr](https://pypi.org/project/rapidocr/) | `3.10.0` | Apache-2.0 | documents |
 | [referencing](https://pypi.org/project/referencing/) | `0.37.0` | MIT | documents |
 | [regex](https://pypi.org/project/regex/) | `2026.11.19` | Apache-2.0 AND CNRI-Python | documents |
-| [requests](https://pypi.org/project/requests/) | `2.34.2` | Apache Software License | documents |
+| [requests](https://pypi.org/project/requests/) | `2.34.2` | Apache Software License | documents, speakers |
 | [rich](https://pypi.org/project/rich/) | `15.0.0` | MIT License | documents |
 | [rpds-py](https://pypi.org/project/rpds-py/) | `2026.9.1` | MIT | documents |
 | [rtree](https://pypi.org/project/rtree/) | `1.4.1` | MIT | documents |
+| [ruamel.yaml](https://pypi.org/project/ruamel.yaml/) | `0.18.17` | MIT License | speakers |
+| [ruamel.yaml.clib](https://pypi.org/project/ruamel.yaml.clib/) | `0.2.15` | MIT License | speakers |
 | [ruff](https://pypi.org/project/ruff/) | `0.17.6` | MIT | tests only |
 | [safetensors](https://pypi.org/project/safetensors/) | `0.8.0` | Apache Software License | documents |
-| [scipy](https://pypi.org/project/scipy/) | `1.18.1` | BSD License | documents |
+| [scikit-learn](https://pypi.org/project/scikit-learn/) | `1.9.1` | BSD-3-Clause | speakers, tests only |
+| [scipy](https://pypi.org/project/scipy/) | `1.18.1` | BSD License | documents, speakers, tests only |
 | [semchunk](https://pypi.org/project/semchunk/) | `3.2.5` | MIT License | documents |
-| [setuptools](https://pypi.org/project/setuptools/) | `84.2.1` | MIT | documents |
+| [sentencepiece](https://pypi.org/project/sentencepiece/) | `0.2.3` | Apache-2.0 | speakers |
+| [setuptools](https://pypi.org/project/setuptools/) | `84.2.1` | MIT | documents, documents, speakers, speakers |
 | [shapely](https://pypi.org/project/shapely/) | `2.2.0` | BSD-3-Clause | documents |
 | [shellingham](https://pypi.org/project/shellingham/) | `1.5.4` | ISC License (ISCL) | documents |
 | [six](https://pypi.org/project/six/) | `1.17.0` | MIT License | documents |
+| [soundfile](https://pypi.org/project/soundfile/) | `0.14.0` | BSD License | speakers |
 | [soupsieve](https://pypi.org/project/soupsieve/) | `4.1.3` | MIT | documents |
-| [starlette](https://pypi.org/project/starlette/) | `1.10.0` | BSD-3-Clause | documents, gateway, search |
-| [sympy](https://pypi.org/project/sympy/) | `1.14.0` | BSD License | documents |
+| [speechbrain](https://pypi.org/project/speechbrain/) | `1.1.2` | Apache Software License | speakers |
+| [starlette](https://pypi.org/project/starlette/) | `1.10.0` | BSD-3-Clause | documents, gateway, search, speakers, transcriber |
+| [sympy](https://pypi.org/project/sympy/) | `1.14.0` | BSD License | documents, documents, speakers, speakers |
 | [tabulate](https://pypi.org/project/tabulate/) | `0.10.0` | MIT | documents |
-| [tokenizers](https://pypi.org/project/tokenizers/) | `0.23.3` | Apache Software License | documents |
-| [torch](https://pypi.org/project/torch/) | `2.14.1` | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | documents |
+| [threadpoolctl](https://pypi.org/project/threadpoolctl/) | `3.8.0` | BSD-3-Clause | speakers, tests only |
+| [tokenizers](https://pypi.org/project/tokenizers/) | `0.23.3` | Apache Software License | documents, transcriber |
+| [torch](https://pypi.org/project/torch/) | `2.14.1` | Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT | documents, documents, speakers, speakers |
+| [torchaudio](https://pypi.org/project/torchaudio/) | `2.11.0` | BSD License | speakers |
 | [torchvision](https://pypi.org/project/torchvision/) | `0.29.2` | BSD | documents |
-| [tqdm](https://pypi.org/project/tqdm/) | `4.70.1` | MPL-2.0 AND MIT | documents |
+| [tqdm](https://pypi.org/project/tqdm/) | `4.70.1` | MPL-2.0 AND MIT | documents, speakers, transcriber |
 | [transformers](https://pypi.org/project/transformers/) | `5.24.0` | Apache 2.0 License | documents |
 | [tree-sitter](https://pypi.org/project/tree-sitter/) | `0.26.1` | MIT License | documents |
 | [tree-sitter-c](https://pypi.org/project/tree-sitter-c/) | `0.24.2` | MIT License | documents |
 | [tree-sitter-javascript](https://pypi.org/project/tree-sitter-javascript/) | `0.25.0` | MIT | documents |
 | [tree-sitter-python](https://pypi.org/project/tree-sitter-python/) | `0.25.0` | MIT | documents |
 | [tree-sitter-typescript](https://pypi.org/project/tree-sitter-typescript/) | `0.23.2` | MIT License | documents |
-| [triton](https://pypi.org/project/triton/) | `3.8.0` | MIT | documents |
+| [triton](https://pypi.org/project/triton/) | `3.8.0` | MIT | documents, documents, speakers, speakers |
+| [truststore](https://pypi.org/project/truststore/) | `0.10.5` | MIT | transcriber |
 | [typer](https://pypi.org/project/typer/) | `0.27.3` | MIT | documents |
-| [typing-inspection](https://pypi.org/project/typing-inspection/) | `0.4.5` | MIT | documents, gateway, search |
-| [typing_extensions](https://pypi.org/project/typing_extensions/) | `4.16.0` | PSF-2.0 | documents, gateway, search |
+| [typing-inspection](https://pypi.org/project/typing-inspection/) | `0.4.5` | MIT | documents, gateway, search, speakers, transcriber |
+| [typing_extensions](https://pypi.org/project/typing_extensions/) | `4.16.0` | PSF-2.0 | documents, documents, speakers, gateway, search, speakers, transcriber |
 | [tzdata](https://pypi.org/project/tzdata/) | `2026.6` | Apache-2.0 | documents |
-| [urllib3](https://pypi.org/project/urllib3/) | `2.8.0` | MIT | documents |
-| [uvicorn](https://pypi.org/project/uvicorn/) | `0.54.0` | BSD-3-Clause | documents, gateway, search |
+| [urllib3](https://pypi.org/project/urllib3/) | `2.8.0` | MIT | documents, speakers |
+| [uvicorn](https://pypi.org/project/uvicorn/) | `0.54.0` | BSD-3-Clause | documents, gateway, search, speakers, transcriber |
 | [websockets](https://pypi.org/project/websockets/) | `17.4` | BSD-3-Clause | documents |
 | [xlsxwriter](https://pypi.org/project/xlsxwriter/) | `3.3.3` | BSD-2-Clause | documents |

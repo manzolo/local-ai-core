@@ -42,6 +42,7 @@
   <button role="tab" class="tab" data-tab="ask" aria-selected="true" data-i18n="tab_ask">Ask</button>
   <button role="tab" class="tab" data-tab="search" aria-selected="false" data-i18n="tab_search">Search</button>
   <button role="tab" class="tab" data-tab="documents" aria-selected="false" data-i18n="tab_documents">Documents</button>
+  <button role="tab" class="tab" data-tab="transcribe" aria-selected="false" data-i18n="tab_transcribe">Transcribe</button>
   <button role="tab" class="tab" data-tab="services" aria-selected="false" data-i18n="tab_services">Services</button>
 </nav>
 
@@ -104,6 +105,38 @@
     </article>
     <h3 data-i18n="library">Library</h3>
     <ul class="library" id="library"></ul>
+  </section>
+
+  <section class="panel" id="panel-transcribe" role="tabpanel" hidden>
+    <p class="notice" id="tr-off" hidden data-i18n="tr_off">The transcription service is off: start the stack with docker compose --profile transcribe up -d.</p>
+    <form id="tr-form">
+      <label class="drop" id="tr-drop">
+        <input type="file" id="tr-file" required accept="audio/*,video/*,.ogg,.opus,.m4a,.flac,.mkv,.webm">
+        <span class="drop-title" data-i18n="tr_drop">Drop an audio or video file here, or choose one</span>
+        <span class="sub" id="tr-name" data-i18n="tr_types">WAV, MP3, OGG, M4A, FLAC, MP4, MKV, WebM…</span>
+      </label>
+      <div class="options">
+        <label><span data-i18n="tr_lang">Language</span>
+          <select id="tr-lang"><option value="auto" data-i18n="tr_auto">detect</option><option value="en">English</option>
+            <option value="it">Italiano</option><option value="fr">Français</option><option value="de">Deutsch</option>
+            <option value="es">Español</option></select></label>
+        <label class="check"><input type="checkbox" id="tr-spk"><span data-i18n="tr_speakers">Who said what</span></label>
+        <button class="btn primary" type="submit" id="tr-go" data-i18n="tr_go">Transcribe</button>
+      </div>
+      <details class="expect"><summary data-i18n="tr_expect_sum">Check it says a given text</summary>
+        <textarea id="tr-expect" rows="2" maxlength="20000" data-i18n-ph="tr_expect_ph"
+          placeholder="The text the audio should say: the result shows how close it is."></textarea></details>
+    </form>
+    <div class="bar wide" id="tr-bar" hidden><i></i></div>
+    <div class="sub" id="tr-state"></div>
+    <article class="answer" id="tr-out" hidden>
+      <div class="row"><div class="meta" id="tr-meta"></div>
+        <div class="tools"><button class="btn ghost small" type="button" data-dl="txt">.txt</button>
+          <button class="btn ghost small" type="button" data-dl="srt">.srt</button>
+          <button class="btn ghost small" type="button" data-dl="vtt">.vtt</button></div></div>
+      <div class="notice" id="tr-score" hidden></div>
+      <ol class="lines" id="tr-lines"></ol>
+    </article>
   </section>
 
   <section class="panel" id="panel-services" role="tabpanel" hidden>

@@ -80,5 +80,19 @@ sys.exit(0 if "71.25" in r["answer"] and any(c["file"] == "library/collaudo-invo
         && ok "removed from the library and the index" || ko "could not remove the test document"
 fi
 
+if py 'import json,sys; s={x["name"]: x["state"] for x in json.load(sys.stdin)["services"]}; sys.exit(not (s.get("transcribe") == "ready" and s.get("speakers") == "ready"))' <<<"$services"; then
+    echo "▸ transcribe + speakers"
+    here=$(cd "$(dirname "$0")/.." && pwd)
+    res=$(curl -sf -X POST ${LOCAL_AI_API_KEY:+-H "X-API-Key: $LOCAL_AI_API_KEY"} -F "file=@$here/services/speakers/speakers_worker/selftest/dialogue.ogg" \
+          -F speakers=true "$BASE/v1/transcribe?wait=true")
+    if py 'import json,sys
+r = json.load(sys.stdin)["result"]
+seq = "".join(str(s["speaker"]) for s in r["segments"])
+print("   ", r["speakers"], "speakers,", seq, "·", r["segments"][1]["text"][:70])
+sys.exit(0 if r["speakers"] == 2 and seq.startswith("12") and "window" in r["text"] and r["srt"].startswith("1\n00:00:00") else 1)' <<<"$res"; then
+        ok "dialogue transcribed, two speakers, subtitles"
+    else ko "transcription with speakers wrong: ${res:0:300}"; fi
+fi
+
 [ $rc = 0 ] && echo "✓ collaudo passed" || echo "✗ collaudo FAILED"
 exit $rc

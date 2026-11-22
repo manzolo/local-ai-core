@@ -13,6 +13,10 @@ flowchart LR
         S["search worker<br/>chunks · index · checked citations"]
         D["documents worker (profile docs)<br/>Docling: layout · tables · OCR"]
         G -->|"/convert (file in the uploads volume)"| D
+        TR["transcriber (profile transcribe)<br/>faster-whisper"]
+        SP["speakers (profile speakers)<br/>SpeechBrain ECAPA"]
+        G -->|"/transcribe"| TR
+        G -->|"/attribute"| SP
         D -.->|"Markdown into the library"| L[("library")]
         L --> S
         O[("ollama<br/>bge-m3 · qwen3.5:9b")]
@@ -69,6 +73,7 @@ loaded, VRAM in use, last test).
 | `uploads` | files being converted, deleted when their job ends |
 | `library` | converted documents you chose to keep; searched with your notes as `library/…` |
 | `documents-models` | Docling's models |
+| `transcriber-models`, `speakers-models` | the Whisper and ECAPA models |
 | `NOTES_DIR` | your notes, mounted read-only, never written |
 
 Nothing is sent anywhere: no telemetry, and the models are downloaded from the Ollama registry only.
