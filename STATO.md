@@ -1,7 +1,7 @@
 # Stato di local-ai-core
 
 Aggiornato: 2026-11-22 (sessione 1). **Fasi 1 e 2 completate e collaudate. Prossima: fase 3, trascrizione e parlanti.**
-Repo su GitHub `manzolo/local-ai-core`, **privato** finché il maintainer non lo apre (fase 6).
+Repo su GitHub `manzolo/local-ai-core`, **pubblico dal 2026-11-22** (deciso dal maintainer), CI verde.
 Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
 tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
 
@@ -73,9 +73,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 
 ## Da fare prima della pubblicazione (fase 6)
 
-- Verificare di nuovo una per una le licenze dei modelli e la fonte di ciascuna.
-- L'URL del repo nei documenti (`github.com/manzolo/local-ai-core`) esiste solo dopo la pubblicazione.
-- Rendere pubblico il repo, topic `local-ai`, riga in `local-ai-lab`: solo col sì del maintainer.
+- Licenze: verificate una per una il 2026-11-22 (`docs/licenses.md`, `docs/licenses-python.md` generato
+  da `scripts/licenses.py`). Da rifare a ogni modello o dipendenza nuova.
+- Topic `local-ai`, riga in `local-ai-lab`, scheda su manzolo-home: solo col sì del maintainer.
 
 ## Scelte aperte
 
@@ -100,6 +100,12 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - Un volume nuovo prende proprietario e permessi dalla cartella dell'immagine: `/library` e
   `/data/uploads` vanno create nelle immagini con l'utente non root, se no diventano di root.
 - `git push` dalla sessione: va fuori dalla sandbox (la chiave SSH sta nell'agente del desktop).
+- Prima della pubblicazione la cronologia è stata riscritta (`git filter-repo`) per togliere una parola
+  privata da due vecchie versioni di questo file; push forzato approvato dal maintainer. `grep-private.sh
+  --history` segnala ancora `10.4.0.35` in un commit: è il numero di versione di `nvidia-curand`, non un
+  indirizzo.
+- `gh` 2.46 non ha `--accept-visibility-change-consequences`: la visibilità si cambia con
+  `gh api -X PATCH repos/OWNER/REPO -f visibility=public`.
 - In modalità famiglia `down -v` non cancella il volume dell'Ollama interno (il servizio è spento).
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
