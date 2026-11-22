@@ -243,6 +243,12 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
         async def run(job):
             checks, ok = [], False
+            with contextlib.suppress(Exception):  # a test is GPU work like any other: make room first
+                info = await w.info()
+                need = max((s.get("vram_gb") or 0) for s in info["services"])
+                llm = next((s["model"] for s in info["services"] if s.get("ollama", True) and s.get("vram_gb", 0) >= 4),
+                           None)
+                await ensure_vram(app, job, need, exclude=w.name, keep_model=llm)
             async for ev in w.stream("/selftest", {}):
                 if ev["type"] == "check":
                     checks.append({k: ev[k] for k in ("name", "ok", "detail")})

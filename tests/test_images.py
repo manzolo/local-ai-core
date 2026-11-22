@@ -256,3 +256,23 @@ def test_unload_restarts_the_worker_only_when_something_was_loaded(monkeypatch):
             return False
     tr.app.state.engine = Empty()
     assert TestClient(tr.app).post("/unload").json() == {"unloaded": False} and calls == [1]
+
+
+def test_switching_task_frees_comfyui_models_first(client, image_worker):
+    comfy = image_worker.state.comfy
+    image_worker.state.last_task = None
+    client.post("/v1/images/generate?wait=true", json={"prompt": "x", "width": 512, "height": 512})
+    client.post("/v1/images/generate?wait=true", json={"prompt": "y", "width": 512, "height": 512})
+    assert comfy.frees == 0  # same kind of job: SDXL stays, the second picture is fast
+    client.post("/v1/images/cutout?wait=true", files={"file": ("p.png", photo_bytes(), "image/png")})
+    assert comfy.frees == 1  # SDXL out before BiRefNet's pass
+
+
+def test_a_service_test_makes_room_on_the_gpu_first(fake, search_worker, image_worker, tmp_path, monkeypatch):
+    other = FakeGpuWorker("transcriber")
+    app = make(fake, search_worker, image_worker, tmp_path, extra=["transcriber=http://transcriber:8000"])
+    app.state.workers["transcriber"].transport = other.transport
+    full_gpu(monkeypatch)
+    with TestClient(app) as c:
+        r = c.post("/v1/services/images/test?wait=true")
+    assert r.status_code == 200 and other.unloads == 1

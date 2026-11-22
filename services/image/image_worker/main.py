@@ -62,6 +62,7 @@ app.state.comfy_transport = None     # tests put a fake ComfyUI here
 app.state.download_transport = None  # and a fake model server here
 app.state.lock = asyncio.Lock()
 app.state.last_used = time.time()
+app.state.last_task = None  # the kind of the last job: a different one first frees ComfyUI's models
 
 
 def comfy():
@@ -134,6 +135,9 @@ async def run_task(task, workflow_of, out, src=None, post=None):
                 await app.state.process.start(MODELS_DIR)
             yield {"type": "progress", "message": task}
             c = comfy()
+            if app.state.last_task not in (None, task):
+                await c.free()  # another kind of job: its models out before this one's come in
+            app.state.last_task = task
             name = await c.upload(src, f"lac-{os.getpid()}-{int(t0 * 1000)}{os.path.splitext(src)[1]}") if src else None
             png = await c.run(workflow_of(name))
         except (models.ModelError, ComfyError) as e:
@@ -239,6 +243,7 @@ def check_paths(src, out):
 @app.post("/unload")
 async def unload():
     async with app.state.lock:
+        app.state.last_task = None
         return {"unloaded": app.state.process.stop()}
 
 

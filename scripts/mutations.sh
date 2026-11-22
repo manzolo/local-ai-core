@@ -70,4 +70,8 @@ mut services/transcriber/transcriber_worker/main.py '    if unloaded:
         restart_soon()' '    if False:
         restart_soon()' \
     "unloading keeps the CUDA context (no restart)"
+mut services/image/image_worker/main.py '            if app.state.last_task not in (None, task):' '            if False:' \
+    "ComfyUI keeps SDXL in memory when the next job is a different one"
+mut gateway/localai_gateway/main.py '                await ensure_vram(app, job, need, exclude=w.name, keep_model=llm)' '                pass' \
+    "a service test does not make room on the GPU"
 exit $rc

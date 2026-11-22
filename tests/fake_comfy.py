@@ -15,6 +15,7 @@ class FakeComfy:
         self.checkpoints = set(checkpoints)
         self.uploads, self.outputs, self.history = {}, {}, {}
         self.prompts = 0
+        self.frees = 0
         self.transport = httpx.MockTransport(self.handle)
 
     def handle(self, request):
@@ -46,6 +47,9 @@ class FakeComfy:
             self.history[pid] = {"status": {"status_str": "success", "completed": True},
                                  "outputs": {"9": {"images": [{"filename": fname, "subfolder": "", "type": "output"}]}}}
             return httpx.Response(200, json={"prompt_id": pid})
+        if path == "/free":
+            self.frees += 1
+            return httpx.Response(200)
         if path.startswith("/history/"):
             pid = path.rsplit("/", 1)[1]
             return httpx.Response(200, json={pid: self.history[pid]} if pid in self.history else {})

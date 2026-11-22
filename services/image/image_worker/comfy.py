@@ -102,6 +102,14 @@ class ComfyClient:
             raise ComfyError(f"ComfyUI refused the image: HTTP {r.status_code}")
         return r.json()["name"]
 
+    async def free(self):
+        """Unloads ComfyUI's models from the GPU: SDXL left in memory leaves no room for BiRefNet's 1024×1024
+        pass on a 12 GB card already shared with others."""
+        async with self._client() as c:
+            r = await c.post("/free", json={"unload_models": True, "free_memory": True})
+        if r.status_code != 200:
+            raise ComfyError(f"ComfyUI could not free its memory: HTTP {r.status_code}")
+
     async def run(self, workflow, timeout=600, poll=0.5):
         """Queues a workflow, waits for it, returns the bytes of its first output image."""
         async with self._client() as c:
