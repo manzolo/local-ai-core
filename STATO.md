@@ -1,6 +1,6 @@
 # Stato di local-ai-core
 
-Aggiornato: 2026-11-22 (sessione 1). **Fase 1 completata e collaudata. Prossima: fase 2, documenti.**
+Aggiornato: 2026-11-22 (sessione 1). **Fasi 1 e 2 completate e collaudate. Prossima: fase 3, trascrizione e parlanti.**
 Repo su GitHub `manzolo/local-ai-core`, **privato** finché il maintainer non lo apre (fase 6).
 Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
 tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
@@ -16,9 +16,15 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
 - **Collaudo GPU** (`make collaudo`) superato in tutte e due le modalità: 8 controlli del collaudo
   interno (3 ricerche con parole diverse dalle note, aggiornamento incrementale, indice troncato
   rifiutato, risposta con fonte, domanda senza risposta, citazione inventata segnalata) + domanda end to end.
-- **Test su CPU**: 25 test con Ollama finto, lint pulito, 8 mutazioni tutte colte.
+- **Documenti (fase 2)**, profilo `docs`: Docling 2.151.1 sul vero, collaudo interno 5/5 (PDF col
+  testo, scansione con OCR, cifra alterata colta, scansione senza OCR rifiutata, PDF rotto). Catena
+  completa provata: scansione storta → Markdown con la tabella giusta → libreria → domanda → risposta
+  che cita `library/…` → rimozione. Quick start passo 9 rifatto da un clone pulito.
+- **Test su CPU**: 34 test con Ollama e Docling finti, lint pulito, 12 mutazioni tutte colte.
+- **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
-- Gateway e worker: immagini da ~140 MB, utente non root, nessuna porta dei worker pubblicata.
+- Gateway e worker leggeri: immagini da ~140 MB; documenti ~7 GB (PyTorch con CUDA), modelli ~540 MB in
+  un volume. Utente non root, nessuna porta dei worker pubblicata.
 
 ## Architettura (com'è adesso)
 
@@ -33,8 +39,12 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   Ollama, scarica i modelli che mancano (avanzamento sul modello intero), indicizza le note.
 - **Worker** (`services/<nome>/`): contratto `GET /health`, `GET /info`, `POST /selftest` + le chiamate
   del servizio in NDJSON. `GET /v1/services` è la somma degli `/info`.
+- **documents** (profilo `docs`): Docling dietro un'interfaccia piccola, caricato al primo uso e scaricato
+  dopo `IDLE_UNLOAD_MINUTES`; i file caricati stanno nel volume `uploads` e si cancellano a fine job; il
+  Markdown va nel volume `library` solo se richiesto. Prima di un worker GPU il gateway chiede a Ollama
+  di liberare i modelli se la VRAM libera non basta.
 - **search + ask** in un solo worker leggero: porting ripensato di `search.py` e `ask.py`
-  (pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
+  (note + libreria, la libreria col prefisso `library/`; pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
   controllate, «non trovo» senza chiamare il modello). Prompt in inglese, risposta nella lingua della
   domanda.
 - **Ollama** `0.40.16` per digest, senza porta pubblicata e senza `container_name`; lo scarico della
@@ -57,6 +67,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 | Brief di partenza | `PROMPT.md` fuori da git | contiene percorsi e nomi privati |
 | Nomi privati da cercare | in `.private-patterns`, fuori da git | scriverli nello script pubblico li pubblicherebbe |
 | Nome ed email del maintainer | ammessi nel repo e nei commit | deciso dal maintainer il 2026-11-22 |
+| Bolletta di prova | nuova, inventata, in inglese (`examples/documents/invoice.html`), PDF e «scansione» generati da `scripts/make-fixtures.sh` | il brief chiede di rigenerarla |
+| Documenti nella libreria | stesso nome = sostituito; un file di note chiamato `library/…` si confonderebbe col prefisso | semplice; documentato |
+| Lingua OCR | una per richiesta, default `en` | RapidOCR ne regge una alla volta |
 
 ## Da fare prima della pubblicazione (fase 6)
 
@@ -67,7 +80,7 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 ## Scelte aperte
 
 1. `documents → search → ask` sostituisce `ollapdf` e `PDF-Chatbot-Ollama-Langchain-Docker` o li
-   affianca? Si decide alla fine della fase 2.
+   affianca? Domanda posta al maintainer a fine fase 2.
 2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova: fasi 4 e 5.
 
 ## Note e trappole di questa sessione
@@ -81,12 +94,20 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - FastAPI trasforma un'eccezione nella lettura del corpo in un `400`: il limite di dimensione intercetta
   anche la risposta, così l'utente vede `413`.
 - I test locali sono girati con Python 3.14 (quello dell'host); le immagini e la CI usano 3.12.
+- L'OCR su una scansione perde qualche spazio («invoiceno.2093», «Meterreading»): cifre e tabella sono
+  giuste, ed è su quelle che si basa il collaudo.
+- Starlette 1.x non ha più `@app.on_event`: si usa `lifespan`.
+- Un volume nuovo prende proprietario e permessi dalla cartella dell'immagine: `/library` e
+  `/data/uploads` vanno create nelle immagini con l'utente non root, se no diventano di root.
+- `git push` dalla sessione: va fuori dalla sandbox (la chiave SSH sta nell'agente del desktop).
+- In modalità famiglia `down -v` non cancella il volume dell'Ollama interno (il servizio è spento).
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Fase 2: worker `documents` (Docling 2.151.1, TableFormer, RapidOCR torch, modelli in un volume) nel
-profilo `docs`; `POST /v1/documents/convert` come job; opzione per mandare il Markdown dritto
-nell'indice (catena documents → search → ask); bolletta finta rigenerata come prova, con una cifra
-alterata come errore introdotto; sezione `docs/services/documents.md`, passo nel quick start, schermate.
+Fase 3: worker `transcriber` (faster-whisper 1.2.1, large-v3, audio decodificato con ffmpeg) e
+`speakers` (SpeechBrain 1.1.2 ECAPA, soglia 0,55) nel profilo `transcribe`; `POST /v1/transcribe` con
+testo, srt, vtt e `speakers=true`; avanzamento vero via SSE. Audio di prova sintetico **non** XTTS
+(licenza): da scegliere una voce con licenza libera. Sezione `docs/services/transcribe.md`, passo nel
+quick start, schermate.
