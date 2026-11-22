@@ -23,6 +23,8 @@ flowchart LR
         VO["voice (profile voice)<br/>XTTS-v2"] -->|"listen again"| TR
         G -->|"/read"| RD
         G -->|"/speak"| VO
+        CT["control (profile control)<br/>the only one with Docker"]
+        G -->|"build / start / stop"| CT
         D -.->|"Markdown into the library"| L[("library")]
         L --> S
         O[("ollama<br/>bge-m3 · qwen3.5:9b")]
@@ -40,6 +42,13 @@ flowchart LR
 | gateway | `gateway/` | the only listening port. Serves `/v1/…`, `/openapi.json`, `/docs` and the web page. Runs long work as jobs and keeps one GPU queue |
 | search worker | `services/search/` | splits Markdown into chunks at headings, keeps the vector index, searches it, builds answers that cite only real excerpts |
 | ollama | image `ollama/ollama` | runs the models; downloads them at the first start |
+
+## Who may touch Docker
+
+Only the `control` container, in its own profile, off by default: six service names, three actions, fixed
+commands without a shell, `--no-deps`, the project read-only, no published port, no Linux capabilities.
+The gateway lets the web page use it only on `127.0.0.1` or with an API key. See
+[Configuration](configuration.md#build-start-and-stop-from-the-web-page).
 
 ## Jobs and the GPU queue
 

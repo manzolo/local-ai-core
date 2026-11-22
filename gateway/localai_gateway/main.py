@@ -7,6 +7,7 @@ a single queue. The workers and Ollama sit behind it on the compose network.
 import asyncio
 import collections
 import contextlib
+import enum
 import hmac
 import json
 import logging
@@ -40,6 +41,8 @@ class Settings:
         self.llm_model = env.get("OLLAMA_MODEL", "qwen3.5:9b")
         self.embed_model = env.get("EMBED_MODEL", "bge-m3")
         self.vision_model = env.get("VISION_MODEL", "qwen3-vl:8b-instruct")
+        self.control_url = env.get("CONTROL_URL", "http://control:8000")
+        self.bind_addr = env.get("BIND_ADDR", "127.0.0.1")
         self.api_key = env.get("LOCAL_AI_API_KEY", "")
         self.max_upload_mb = int(env.get("MAX_UPLOAD_MB", "50"))
         self.auto_pull = env.get("AUTO_PULL_MODELS", "true").lower() in ("1", "true", "yes")
@@ -578,6 +581,52 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         job = app.state.jobs.submit("speak", params, run)
         return await maybe_wait(job, wait)
 
+    # ------------------------------------------------------------------- build, start, stop (profile control)
+
+    def control():
+        return Worker("control", settings.control_url, transport=worker_transports.get("control"))
+
+    def require_admin():
+        """Building and starting containers is allowed on this machine only (the default 127.0.0.1), or with
+        an API key, which every /v1 call then carries. Open to the network without a key: refused."""
+        local = settings.bind_addr in ("127.0.0.1", "localhost", "::1")
+        if not local and not settings.api_key:
+            raise HTTPException(403, "the gateway is open to the network without an API key: building and "
+                                     "starting services is refused (set LOCAL_AI_API_KEY)")
+
+    @app.get("/v1/admin/services", dependencies=[v1, Depends(require_admin)], tags=["admin"],
+             summary="Optional services: image built, container running (needs the control profile)")
+    async def admin_services():
+        try:
+            async with control()._client(30) as c:
+                r = await c.get("/services")
+        except httpx.HTTPError:
+            raise HTTPException(503, "the control service is off: docker compose --profile control up -d") from None
+        return r.json()
+
+    @app.post("/v1/admin/services/{name}/{action}", dependencies=[v1, Depends(require_admin)], tags=["admin"],
+              status_code=202, summary="Build, start or stop an optional service (job, with its log as events)")
+    async def admin_act(name: AdminService, action: AdminAction, wait: bool = False):
+        c = control()
+
+        async def run(job):
+            res = None
+            async for ev in c.stream(f"/services/{name.value}/{action.value}", {}):
+                if ev["type"] == "log":
+                    await job.emit("log", ev["line"])
+                    job.progress = {"done": None, "total": None, "message": ev["line"][:200]}
+                elif ev["type"] == "result":
+                    res = {k: v for k, v in ev.items() if k != "type"}
+            if res is None:
+                raise JobFailed(f"{action.value} of {name.value} ended without a result")
+            for w in app.state.workers.values():  # a started or stopped worker: learn its services again
+                w.services = []
+            return res
+
+        log.info("admin: %s %s", action.value, name.value)
+        job = app.state.jobs.submit("admin", {"service": name.value, "action": action.value}, run, gpu=False)
+        return await maybe_wait(job, wait)
+
     @app.get("/v1/library", dependencies=[v1], tags=["documents"], summary="Documents added to the library")
     async def library_list():
         d, out = settings.library_dir, []
@@ -660,6 +709,21 @@ class AskIn(BaseModel):
     n: int = Field(6, ge=1, le=20, description="how many excerpts the model reads")
     min: float | None = Field(None, ge=-1, le=1, description="minimum search score (default 0.35)")
     model: str | None = Field(None, description="Ollama model (default OLLAMA_MODEL)")
+
+
+class AdminService(enum.StrEnum):
+    documents = "documents"
+    transcribe = "transcribe"
+    speakers = "speakers"
+    images = "images"
+    handwriting = "handwriting"
+    voice = "voice"
+
+
+class AdminAction(enum.StrEnum):
+    build = "build"
+    start = "start"
+    stop = "stop"
 
 
 class SpeakIn(BaseModel):

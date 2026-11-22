@@ -68,6 +68,38 @@ OLLAMA_MODEL=qwen3.5:4b
 **Changing the embedding model** makes the index useless: it is rebuilt by itself on the next search
 (the index remembers which model made it).
 
+## Build, start and stop from the web page
+
+With the `control` profile, the **Services** tab gets **Build**, **Start** and **Stop** buttons for the six
+optional services, so you build only what you use and turn things on when you need them:
+
+```bash
+docker compose --profile control up -d        # run it from the project folder
+```
+
+In family mode, put `COMPOSE_FILE=docker-compose.yml:docker-compose.local-ai.yml` in `.env`, so the buttons
+use the same files as your stack. Without the profile, a service that is off shows the command to type.
+
+Keeping every service on costs little: an idle service holds **no VRAM** (its model loads on the first job
+and is freed after `IDLE_UNLOAD_MINUTES`) and some tens of MB of RAM. What weighs is the disk of the images
+(up to ~35 GB) and their first build: that is what the buttons save.
+
+**How it stays safe.** Something has to talk to Docker to build and start containers, and whoever controls
+Docker controls the machine. So that power is kept in one small, closed container:
+
+| Rule | So that |
+|---|---|
+| it knows six service names and three actions; anything else is refused before it runs | no free command can be sent |
+| every command is a fixed list of words, run without a shell | nothing can be injected |
+| `--no-deps`: it never starts, stops or rebuilds the gateway, Ollama, search, or itself | the page cannot take the core down |
+| the project folder is mounted read-only | what gets built is what is in the repository |
+| no published port, only the compose network; no Linux capabilities; read-only file system | it can be reached only by the gateway |
+| the gateway allows the buttons only on `127.0.0.1` (the default) or with `LOCAL_AI_API_KEY` | a gateway opened to the network without a key refuses them |
+| one action at a time, each one logged (`docker compose logs control`) | you can see what was done |
+
+Even in the worst case, someone who can use the page can only build, start or stop local-ai-core's own
+optional services.
+
 ## Security defaults
 
 - listens on `127.0.0.1` unless told otherwise;
@@ -75,4 +107,5 @@ OLLAMA_MODEL=qwen3.5:4b
 - request bodies capped at `MAX_UPLOAD_MB`;
 - your notes are mounted read-only;
 - containers run as an unprivileged user; workers have no published port;
-- no telemetry; the only outgoing traffic is the model download from the Ollama registry.
+- no telemetry; the only outgoing traffic is the model download from the Ollama registry;
+- only the optional `control` service talks to Docker, closed as described above.

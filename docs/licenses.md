@@ -61,6 +61,7 @@ another model, check that model's license yourself.
 | FastAPI, Starlette, Pydantic, httpx, Uvicorn and the other Python packages | MIT, BSD, Apache-2.0, PSF; certifi and tqdm under MPL-2.0 | all images |
 | [Swagger UI](https://github.com/swagger-api/swagger-ui) (served at `/docs`) | Apache-2.0, its `LICENSE` and `NOTICE` kept next to it in the image | gateway |
 | Python and Debian (base image `python:3.12-slim-bookworm`) | PSF, and the licenses of the Debian packages | all images |
+| [Docker CLI](https://github.com/docker/cli) 29.9.2 and [Docker Compose](https://github.com/docker/compose) v5.6.1 (official static binaries, sha256 checked) | Apache-2.0 | control |
 | [Playwright](https://github.com/microsoft/playwright-python) (headless Chromium) | Apache-2.0 | only `scripts/screenshots.sh` and `scripts/make-fixtures.sh` |
 | [ComfyUI](https://github.com/comfyanonymous/ComfyUI) v0.46.2 | **GPL-3.0** | image: cloned at a fixed commit when the image is built, run **unmodified as a separate program** and spoken to over HTTP; no ComfyUI file is in this repository |
 | [Piper](https://github.com/OHF-Voice/piper1-gpl) | GPL-3.0 | only `scripts/make-audio-fixtures.sh`, never in a service image; the audio it makes is not covered by its license |

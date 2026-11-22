@@ -152,6 +152,8 @@ curl -s -X POST 'http://localhost:8090/v1/speak?wait=true' -H 'Content-Type: app
 | `GET /v1/services` | every service: state, model, VRAM estimated and in use, license, last test |
 | `POST /v1/services/{name}/test` | runs the built-in test of a service (job: follow its `check` events) |
 | `GET /v1/jobs` | recent jobs, newest first |
+| `GET /v1/admin/services` | optional services: image built, container running (profile `control`) |
+| `POST /v1/admin/services/{name}/{build\|start\|stop}` | build, start or stop one (job, its log as `log` events); only on 127.0.0.1 or with an API key |
 | `GET /v1/jobs/{id}/file` | the file a job produced (images): it lives as long as the job |
 
 ## Errors

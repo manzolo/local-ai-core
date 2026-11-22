@@ -117,6 +117,7 @@ page: **Services → Run test**.
 | see the logs | `docker compose logs -f` |
 | update | `git pull && docker compose up -d --build` |
 | remove everything, models too | `docker compose down -v` |
+| build, start and stop the optional services from the web page | `docker compose --profile control up -d`, then **Services** ([how it stays safe](configuration.md#build-start-and-stop-from-the-web-page)) |
 
 ## 9. Ask about your PDFs too
 

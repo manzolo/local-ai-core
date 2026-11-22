@@ -8,7 +8,7 @@ license = "MIT"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["gateway", "services/search", "services/documents", "services/transcriber", "services/speakers",
-              "services/image", "services/reader", "services/voice", "tests"]
+              "services/image", "services/reader", "services/voice", "services/control", "tests"]
 
 [tool.ruff]
 line-length = 120

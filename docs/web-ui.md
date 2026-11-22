@@ -32,7 +32,9 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
 - **Voice** (profile `voice`): a red notice stays until the non-commercial license of XTTS-v2 is accepted;
   then type a text, pick a voice and a language, and listen; the result says whether every piece was
   listened to again and still says its text.
-- **Services**: each service with its model, VRAM, license and last test. **Run test** runs its built-in
+- **Services**: each service with its model, VRAM, license and last test. With the `control` profile,
+  the optional ones get **Build**, **Start** and **Stop** buttons, with the build log as it runs; without it,
+  a service that is off shows the command that starts it. **Run test** runs its built-in
   test and shows every check as it completes.
 
 ![Search](img/search.png)

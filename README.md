@@ -39,7 +39,8 @@ GPU to searching your own notes.
 | [Voice](docs/services/voice.md) | text → speech, long texts, listened to again | XTTS-v2 | ~3 GB | **non-commercial only** (CPML), you accept it | `voice` |
 
 Turn profiles on with `docker compose --profile docs --profile transcribe --profile speakers --profile image
---profile handwriting up -d` (or `COMPOSE_PROFILES=…` in `.env`). The GPU is shared: before each job the
+--profile handwriting up -d` (or `COMPOSE_PROFILES=…` in `.env`), or add `--profile control` and build, start
+and stop them from the web page. The GPU is shared: before each job the
 gateway frees what the others hold. **Voice** is for non-commercial use only and stays off until you accept
 its license (`XTTS_ACCEPT_CPML=yes`).
 

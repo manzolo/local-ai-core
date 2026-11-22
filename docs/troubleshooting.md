@@ -47,6 +47,16 @@ On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in 
 It runs in the `docs` profile: `docker compose --profile docs up -d` (or `COMPOSE_PROFILES=docs` in
 `.env`). The first build downloads PyTorch with CUDA: about 7 GB.
 
+## The Build / Start / Stop buttons do not appear
+
+They need the `control` profile: `docker compose --profile control up -d`, run from the project folder. On a
+gateway opened to the network (`BIND_ADDR=0.0.0.0`) they also need `LOCAL_AI_API_KEY`.
+
+## A button says "build it first" or fails in family mode
+
+Start needs the image: press **Build** first. In family mode the buttons must use the same compose files as
+your stack: `COMPOSE_FILE=docker-compose.yml:docker-compose.local-ai.yml` in `.env`.
+
 ## The voice says its license is not accepted
 
 That is on purpose: XTTS-v2 is for non-commercial use only, and only you can accept that. Read

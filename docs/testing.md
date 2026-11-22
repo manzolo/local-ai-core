@@ -85,6 +85,10 @@ and [Voice](services/voice.md).
 | XTTS gets the final full stop | the pieces test |
 | years are read as plain numbers | the spelling test |
 | the transcriber is unloaded right when the voice needs it | the shared-GPU test |
+| starting a service may recreate the core (no `--no-deps`) | the command test |
+| the buttons work on a gateway open to the network without a key | the guard test |
+| the gateway passes any name or action on to Docker control | the closed-list test |
+| the control commands run outside the project folder | the folder test |
 
 ## Running the CPU tests locally
 

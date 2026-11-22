@@ -25,6 +25,9 @@ const T = {
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
     vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
+    to_start: "To start it:", act_build: "Build", act_start: "Start", act_stop: "Stop",
+    act_build_ing: "Building… (the first time it downloads several GB)", act_start_ing: "Starting…", act_stop_ing: "Stopping…",
+    running_c: "container running", built_stopped: "built, stopped", not_built: "not built yet",
     tab_handwriting: "Handwriting", tab_voice: "Voice",
     hw_off: "The handwriting service is off: start the stack with docker compose --profile handwriting up -d.",
     hw_drop: "Drop a photo of a handwritten page here, or choose one", hw_expect_sum: "Check it reads a given text",
@@ -87,6 +90,9 @@ const T = {
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
+    to_start: "Per accenderlo:", act_build: "Costruisci", act_start: "Avvia", act_stop: "Ferma",
+    act_build_ing: "Costruisco… (la prima volta scarica diversi GB)", act_start_ing: "Avvio…", act_stop_ing: "Fermo…",
+    running_c: "container acceso", built_stopped: "costruito, spento", not_built: "non ancora costruito",
     tab_handwriting: "Scrittura", tab_voice: "Voce",
     svc_search: "Ricerca per significato", svc_ask: "Domande sulle note", svc_documents: "Documenti in Markdown",
     svc_transcribe: "Trascrizione", svc_speakers: "Chi ha detto cosa", svc_images: "Immagini",
@@ -370,14 +376,38 @@ $("#reindex").addEventListener("click", async () => {
 
 const STATE_CLASS = { ready: "ready", model_missing: "warn", ollama_unreachable: "warn", off: "off", license_not_accepted: "warn" };
 
+// The optional services can be built, started and stopped from here when the `control` profile runs (and
+// the gateway allows it: on this machine, or with an API key). Otherwise the card shows the command to type.
+const PROFILE_OF = { documents: "docs", transcriber: "transcribe", speakers: "speakers", image: "image", reader: "handwriting", voice: "voice" };
+const ADMIN_NAME = { documents: "documents", transcriber: "transcribe", speakers: "speakers", image: "images", reader: "handwriting", voice: "voice" };
+let admin = null;
+
+function adminButtons(s) {
+  const prof = PROFILE_OF[s.worker];
+  if (!prof) return "";
+  const a = admin && admin.find((x) => x.compose_service === s.worker);
+  if (!a) {
+    return s.state === "off" ? `<p class="cmd">${t("to_start")} <code>docker compose --profile ${prof} up -d</code></p>` : "";
+  }
+  const name = ADMIN_NAME[s.worker], btn = (act, cls = "ghost") =>
+    `<button class="btn ${cls} small" type="button" data-admin="${name}" data-act="${act}">${t("act_" + act)}</button>`;
+  const btns = a.running ? btn("stop") : a.built ? btn("start", "primary") + btn("build") : btn("build", "primary");
+  const state = a.running ? t("running_c") : a.built ? t("built_stopped") : t("not_built");
+  return `<div class="admin"><span class="sub">${state}</span><span class="tools">${btns}</span></div><div class="log sub"></div>`;
+}
+
 async function loadServices() {
   const box = $("#services");
   let list;
   try { list = (await apiJSON("/v1/services")).services; } catch (err) { box.innerHTML = `<p class="notice bad">${esc(err.message)}</p>`; return; }
+  try {
+    const r = await api("/v1/admin/services");
+    admin = r.ok ? (await r.json()).services : null;
+  } catch { admin = null; }
   box.innerHTML = list.map((s) => {
     const lt = s.last_test;
     const test = lt ? `<span class="${lt.ok ? "ok" : "ko"}">${lt.ok ? "✓" : "✗"} ${t(lt.ok ? "passed" : "failed")}</span> · ${esc(lt.date)}` : t("never");
-    return `<article class="card" data-name="${esc(s.name)}">
+    return `<article class="card" data-name="${esc(s.name)}" data-worker="${esc(s.worker || "")}">
       <h2>${esc(svcName(s.name, s.title))} <span class="badge ${STATE_CLASS[s.state] || ""}">${esc(t("st_" + s.state))}</span></h2>
       ${s.description ? `<p>${esc(s.description)}</p>` : ""}${s.detail ? `<p>${esc(s.detail)}</p>` : ""}${s.note ? `<p>${esc(s.note)}</p>` : ""}
       ${s.model ? `<dl class="facts">
@@ -387,12 +417,15 @@ async function loadServices() {
         ${s.use_restrictions ? `<dt>${t("use")}</dt><dd>${esc(s.use_restrictions)}</dd>` : ""}
         <dt>${t("profile")}</dt><dd>${esc(s.profile)}</dd>
         <dt>${t("last_test")}</dt><dd>${test}</dd></dl>` : ""}
+      ${adminButtons(s)}
       ${s.state !== "off" ? `<div><button class="btn ghost small" data-test="${esc(s.name)}" type="button">${t("run_test")}</button></div><ul class="checks"></ul>` : ""}
     </article>`;
   }).join("");
 }
 
 $("#services").addEventListener("click", async (e) => {
+  const ab = e.target.closest("[data-admin]");
+  if (ab) { adminAct(ab); return; }
   const btn = e.target.closest("[data-test]");
   if (!btn) return;
   const ul = btn.closest(".card").querySelector(".checks");
@@ -784,6 +817,28 @@ async function voShow(r, id) {
     box.className = "notice"; box.textContent = t("vo_unchecked", { n: v.note });
   } else box.hidden = true;
   $("#vo-out").hidden = false;
+}
+
+async function adminAct(b) {
+  const card = b.closest(".card"), log = card.querySelector(".log");
+  card.querySelectorAll("[data-admin]").forEach((x) => { x.disabled = true; });
+  log.textContent = t("act_" + b.dataset.act + "_ing");
+  try {
+    const job = await apiJSON(`/v1/admin/services/${b.dataset.admin}/${b.dataset.act}`, { method: "POST" });
+    let failed = false;
+    await follow(job.id, (type, data) => {
+      if (type === "log") log.textContent = data;
+      if (type === "error") { failed = true; log.textContent = `${t("error")}: ${data}`; }
+    });
+    if (failed) return;
+    // a started worker needs a few seconds before it answers: wait for it, then show the cards again
+    for (let i = 0; i < 20 && b.dataset.act === "start"; i++) {
+      const { services } = await apiJSON("/v1/services");
+      if (services.some((x) => x.worker === card.dataset.worker && x.state !== "off")) break;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    loadServices();
+  } catch (err) { log.textContent = `${t("error")}: ${err.message}`; }
 }
 
 // --------------------------------------------------------------------------------- tabs, i18n

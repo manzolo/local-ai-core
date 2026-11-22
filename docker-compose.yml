@@ -7,6 +7,7 @@
 #   --profile image                         + images: generate, upscale, cut out (ComfyUI, ~10 GB, ~8 GB VRAM)
 #   --profile handwriting                   + handwritten notes → text (qwen3-vl on Ollama, ~7 GB VRAM)
 #   --profile voice                         + text → speech (XTTS-v2: NON-COMMERCIAL use only, see .env)
+#   --profile control                       + Build / Start / Stop buttons in the web page (talks to Docker)
 #
 # Standalone: this file brings its own Ollama and never touches the shared `local-ai-net` network.
 # To use the Ollama of the local-ai-lab family instead, add the override:
@@ -32,6 +33,7 @@ services:
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
       AUTO_PULL_MODELS: ${AUTO_PULL_MODELS:-true}
       AUTO_INDEX: ${AUTO_INDEX:-true}
+      BIND_ADDR: ${BIND_ADDR:-127.0.0.1}   # the control buttons are allowed only here, or with an API key
       WORKERS: >-
         search=http://search:8000 documents=http://documents:8000
         transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000
@@ -193,6 +195,30 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    restart: unless-stopped
+
+  control:
+    # Build / Start / Stop of the optional services, for the web page. The only container that talks to
+    # Docker: it accepts six service names and three actions, runs fixed commands without a shell, never
+    # touches the gateway or the core services, sees the project read-only, has no published port and no
+    # Linux capabilities, and the gateway allows it only on 127.0.0.1 or with an API key.
+    # Off unless `--profile control`. Run compose from the project folder: PWD is where it is.
+    profiles: ["control"]
+    build:
+      context: .
+      dockerfile: services/control/Dockerfile
+    image: local-ai-core/control:0.1.0
+    environment:
+      PROJECT_DIR: ${PWD:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:${PWD:-/project-folder-unknown}:ro   # the same path as on the host: compose resolves paths there
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   ollama:

@@ -214,6 +214,11 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 #vo-text { width: 100%; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 10px 14px; resize: vertical; }
 audio { width: 100%; margin-top: 12px; }
+.admin { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-top: 1px solid var(--line); padding-top: 8px; }
+.log { font-family: var(--mono); font-size: .75rem; min-height: 1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd { font-size: .85rem; }
+.cmd code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
 code { font-family: var(--mono); font-size: .9em; }
 
 dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); width: min(420px, calc(100% - 32px)); }

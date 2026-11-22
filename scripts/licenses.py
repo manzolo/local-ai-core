@@ -12,7 +12,7 @@ import re
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = {"runtime.txt": "gateway, search", "torch.txt": "documents, speakers", "documents.txt": "documents",
+FILES = {"runtime.txt": "gateway, search, control", "torch.txt": "documents, speakers", "documents.txt": "documents",
          "transcriber.txt": "transcriber", "speakers.txt": "speakers", "image.txt": "image",
          "reader.txt": "reader", "voice.txt": "voice",
          "dev.txt": "tests only"}

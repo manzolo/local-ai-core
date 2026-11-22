@@ -43,6 +43,7 @@ jobs:
           test "$(docker compose --profile transcribe --profile speakers config --services | sort | xargs)" = "gateway ollama search speakers transcriber"
           test "$(docker compose --profile image config --services | sort | xargs)" = "gateway image ollama search"
           test "$(docker compose --profile handwriting --profile voice config --services | sort | xargs)" = "gateway ollama reader search voice"
+          test "$(docker compose --profile control config --services | sort | xargs)" = "control gateway ollama search"
           test "$(docker compose -f docker-compose.yml -f docker-compose.local-ai.yml --profile handwriting config --services | sort | xargs)" = "gateway reader search"
       - name: Images build
         run: docker compose build

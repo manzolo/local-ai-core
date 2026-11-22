@@ -12,18 +12,18 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [aiohttp](https://pypi.org/project/aiohttp/) | `3.14.5` | Apache-2.0 AND MIT | image, voice |
 | [aiosignal](https://pypi.org/project/aiosignal/) | `1.4.0` | Apache Software License | image, voice |
 | [alembic](https://pypi.org/project/alembic/) | `1.20.1` | MIT | image |
-| [annotated-doc](https://pypi.org/project/annotated-doc/) | `0.0.7` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
-| [annotated-types](https://pypi.org/project/annotated-types/) | `0.8.0` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
+| [annotated-doc](https://pypi.org/project/annotated-doc/) | `0.0.7` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
+| [annotated-types](https://pypi.org/project/annotated-types/) | `0.8.0` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [anyascii](https://pypi.org/project/anyascii/) | `0.3.3` | ISC License (ISCL) | voice |
-| [anyio](https://pypi.org/project/anyio/) | `4.16.0` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
+| [anyio](https://pypi.org/project/anyio/) | `4.16.0` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [attrs](https://pypi.org/project/attrs/) | `26.1.0` | MIT | documents, image, voice |
 | [av](https://pypi.org/project/av/) | `19.0.2` | BSD-3-Clause | image, transcriber |
 | [beautifulsoup4](https://pypi.org/project/beautifulsoup4/) | `4.15.0` | MIT License | documents |
 | [blake3](https://pypi.org/project/blake3/) | `1.0.11` | CC0-1.0 OR Apache-2.0 | image |
-| [certifi](https://pypi.org/project/certifi/) | `2026.11.20` | Mozilla Public License 2.0 (MPL 2.0) | documents, gateway, search, image, speakers, transcriber, voice |
+| [certifi](https://pypi.org/project/certifi/) | `2026.11.20` | Mozilla Public License 2.0 (MPL 2.0) | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [cffi](https://pypi.org/project/cffi/) | `2.1.1` | MIT-0 | speakers, voice |
 | [charset-normalizer](https://pypi.org/project/charset-normalizer/) | `3.5.2` | MIT | documents, image, speakers, voice |
-| [click](https://pypi.org/project/click/) | `8.5.1` | BSD-3-Clause | documents, gateway, search, image, speakers, transcriber, voice |
+| [click](https://pypi.org/project/click/) | `8.5.1` | BSD-3-Clause | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [cloudpickle](https://pypi.org/project/cloudpickle/) | `3.1.3` | BSD-3-Clause | speakers, voice |
 | [colorlog](https://pypi.org/project/colorlog/) | `6.12.0` | MIT License | documents |
 | [comfy-aimdo](https://pypi.org/project/comfy-aimdo/) | `0.6.0` | GPL-3.0 (LICENSE in github.com/Comfy-Org/comfy-aimdo) | image |
@@ -62,7 +62,7 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [einops](https://pypi.org/project/einops/) | `0.8.2` | MIT License | image, voice |
 | [et_xmlfile](https://pypi.org/project/et_xmlfile/) | `2.0.0` | MIT License | documents |
 | [Faker](https://pypi.org/project/Faker/) | `40.63.0` | MIT License | documents |
-| [fastapi](https://pypi.org/project/fastapi/) | `0.165.0` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
+| [fastapi](https://pypi.org/project/fastapi/) | `0.165.0` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [faster-whisper](https://pypi.org/project/faster-whisper/) | `1.2.1` | MIT License | transcriber |
 | [filelock](https://pypi.org/project/filelock/) | `4.2.12` | MIT | documents, documents, speakers, image, speakers, voice |
 | [filelock](https://pypi.org/project/filelock/) | `4.3.0` | MIT | transcriber |
@@ -72,17 +72,17 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [frozenlist](https://pypi.org/project/frozenlist/) | `1.8.0` | Apache-2.0 | image, voice |
 | [fsspec](https://pypi.org/project/fsspec/) | `2026.9.0` | BSD-3-Clause | documents, documents, speakers, image, speakers, transcriber, voice |
 | [grpcio](https://pypi.org/project/grpcio/) | `1.85.3` | Apache-2.0 | voice |
-| [h11](https://pypi.org/project/h11/) | `0.16.0` | MIT License | documents, gateway, search, image, speakers, transcriber, voice |
+| [h11](https://pypi.org/project/h11/) | `0.16.0` | MIT License | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [hf-xet](https://pypi.org/project/hf-xet/) | `1.8.0` | Apache-2.0 | documents, image, speakers, transcriber, voice |
-| [httpcore](https://pypi.org/project/httpcore/) | `1.0.9` | BSD-3-Clause | documents, gateway, search, image, speakers, transcriber, voice |
+| [httpcore](https://pypi.org/project/httpcore/) | `1.0.9` | BSD-3-Clause | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [httpcore2](https://pypi.org/project/httpcore2/) | `2.16.2` | BSD-3-Clause | image, transcriber |
-| [httpx](https://pypi.org/project/httpx/) | `0.28.1` | BSD License | documents, gateway, search, image, speakers, transcriber, voice |
+| [httpx](https://pypi.org/project/httpx/) | `0.28.1` | BSD License | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [httpx2](https://pypi.org/project/httpx2/) | `2.16.2` | BSD-3-Clause | image, transcriber |
 | [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `1.33.0` | Apache Software License | documents, speakers |
 | [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `2.4.0` | Apache Software License | image, transcriber |
 | [huggingface_hub](https://pypi.org/project/huggingface_hub/) | `0.36.2` | Apache Software License | voice |
 | [HyperPyYAML](https://pypi.org/project/HyperPyYAML/) | `1.2.3` | Apache Software License | speakers |
-| [idna](https://pypi.org/project/idna/) | `3.20` | BSD-3-Clause | documents, gateway, search, image, speakers, transcriber, voice |
+| [idna](https://pypi.org/project/idna/) | `3.20` | BSD-3-Clause | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [inflect](https://pypi.org/project/inflect/) | `7.6.0` | MIT | voice |
 | [iniconfig](https://pypi.org/project/iniconfig/) | `2.3.1` | MIT | tests only |
 | [jaraco.functools](https://pypi.org/project/jaraco.functools/) | `4.6.0` | MIT | voice |
@@ -146,7 +146,7 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [onnxruntime](https://pypi.org/project/onnxruntime/) | `1.32.0` | MIT License | transcriber |
 | [opencv-python-headless](https://pypi.org/project/opencv-python-headless/) | `5.1.0.95` | Apache Software License | documents |
 | [openpyxl](https://pypi.org/project/openpyxl/) | `3.1.5` | MIT License | documents |
-| [opentelemetry-api](https://pypi.org/project/opentelemetry-api/) | `1.45.2` | Apache-2.0 | documents, gateway, search, image, speakers, transcriber, voice |
+| [opentelemetry-api](https://pypi.org/project/opentelemetry-api/) | `1.45.2` | Apache-2.0 | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [packaging](https://pypi.org/project/packaging/) | `26.3` | Apache-2.0 OR BSD-2-Clause | documents, image, speakers, tests only, transcriber, voice |
 | [pandas](https://pypi.org/project/pandas/) | `3.1.1` | BSD-3-Clause | documents |
 | [pillow](https://pypi.org/project/pillow/) | `13.0.0` | MIT-CMU | documents, image, reader, tests only, voice |
@@ -159,9 +159,9 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [psutil](https://pypi.org/project/psutil/) | `7.2.2` | BSD-3-Clause | documents, image, voice |
 | [pyclipper](https://pypi.org/project/pyclipper/) | `1.4.0` | OSI Approved; MIT License | documents |
 | [pycparser](https://pypi.org/project/pycparser/) | `3.12` | BSD-3-Clause | speakers, voice |
-| [pydantic](https://pypi.org/project/pydantic/) | `2.14.4` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
+| [pydantic](https://pypi.org/project/pydantic/) | `2.14.4` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [pydantic-settings](https://pypi.org/project/pydantic-settings/) | `2.16.3` | MIT | documents, image |
-| [pydantic_core](https://pypi.org/project/pydantic_core/) | `2.50.5` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
+| [pydantic_core](https://pypi.org/project/pydantic_core/) | `2.50.5` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [Pygments](https://pypi.org/project/Pygments/) | `2.21.0` | BSD-2-Clause | documents, image, tests only |
 | [pylatexenc](https://pypi.org/project/pylatexenc/) | `2.11` | MIT License | documents |
 | [PyOpenGL](https://pypi.org/project/PyOpenGL/) | `3.1.10` | BSD License | image |
@@ -172,7 +172,7 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [python-dateutil](https://pypi.org/project/python-dateutil/) | `4.0.0` | BSD-3-Clause | documents, voice |
 | [python-docx](https://pypi.org/project/python-docx/) | `1.2.0` | MIT License | documents |
 | [python-dotenv](https://pypi.org/project/python-dotenv/) | `1.2.4` | BSD-3-Clause | documents, image |
-| [python-multipart](https://pypi.org/project/python-multipart/) | `0.0.33` | Apache-2.0 | gateway, search, image, speakers, transcriber, voice |
+| [python-multipart](https://pypi.org/project/python-multipart/) | `0.0.33` | Apache-2.0 | gateway, search, control, image, speakers, transcriber, voice |
 | [python-oxmsg](https://pypi.org/project/python-oxmsg/) | `0.0.2` | MIT License | documents |
 | [python-pptx](https://pypi.org/project/python-pptx/) | `1.0.2` | MIT License | documents |
 | [PyYAML](https://pypi.org/project/PyYAML/) | `6.0.4` | MIT License | documents, image, speakers, transcriber, voice |
@@ -202,7 +202,7 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [spandrel](https://pypi.org/project/spandrel/) | `0.4.2` | MIT License | image |
 | [speechbrain](https://pypi.org/project/speechbrain/) | `1.1.2` | Apache Software License | speakers |
 | [SQLAlchemy](https://pypi.org/project/SQLAlchemy/) | `2.1.9` | MIT | image |
-| [starlette](https://pypi.org/project/starlette/) | `1.10.0` | BSD-3-Clause | documents, gateway, search, image, speakers, transcriber, voice |
+| [starlette](https://pypi.org/project/starlette/) | `1.10.0` | BSD-3-Clause | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [sympy](https://pypi.org/project/sympy/) | `1.14.0` | BSD License | documents, documents, speakers, image, speakers, voice |
 | [tabulate](https://pypi.org/project/tabulate/) | `0.10.0` | MIT | documents |
 | [tensorboard](https://pypi.org/project/tensorboard/) | `2.21.0` | Apache Software License | voice |
@@ -230,11 +230,11 @@ Every package installed in the images, pinned in `requirements/`, with the licen
 | [typeguard](https://pypi.org/project/typeguard/) | `4.6.1` | MIT | voice |
 | [typer](https://pypi.org/project/typer/) | `0.27.3` | MIT | documents |
 | [typer](https://pypi.org/project/typer/) | `0.29.2` | MIT | image |
-| [typing-inspection](https://pypi.org/project/typing-inspection/) | `0.4.5` | MIT | documents, gateway, search, image, speakers, transcriber, voice |
-| [typing_extensions](https://pypi.org/project/typing_extensions/) | `4.16.0` | PSF-2.0 | documents, documents, speakers, gateway, search, image, speakers, transcriber, voice |
+| [typing-inspection](https://pypi.org/project/typing-inspection/) | `0.4.5` | MIT | documents, gateway, search, control, image, speakers, transcriber, voice |
+| [typing_extensions](https://pypi.org/project/typing_extensions/) | `4.16.0` | PSF-2.0 | documents, documents, speakers, gateway, search, control, image, speakers, transcriber, voice |
 | [tzdata](https://pypi.org/project/tzdata/) | `2026.6` | Apache-2.0 | documents, voice |
 | [urllib3](https://pypi.org/project/urllib3/) | `2.8.0` | MIT | documents, image, speakers, voice |
-| [uvicorn](https://pypi.org/project/uvicorn/) | `0.54.0` | BSD-3-Clause | documents, gateway, search, image, speakers, transcriber, voice |
+| [uvicorn](https://pypi.org/project/uvicorn/) | `0.54.0` | BSD-3-Clause | documents, gateway, search, control, image, speakers, transcriber, voice |
 | [websockets](https://pypi.org/project/websockets/) | `17.4` | BSD-3-Clause | documents |
 | [Werkzeug](https://pypi.org/project/Werkzeug/) | `3.1.9` | BSD-3-Clause | voice |
 | [xlsxwriter](https://pypi.org/project/xlsxwriter/) | `3.3.3` | BSD-2-Clause | documents |

@@ -95,4 +95,12 @@ mut gateway/localai_gateway/main.py '                elif key and key not in pre
     "a service that downloads its model on first use is reported missing on a fresh install"
 mut gateway/localai_gateway/main.py '                    for s in info.get("services", []) if s.get("ollama") is False and s.get("loaded")]' '                    for s in info.get("services", []) if False]' \
     "the status bar hides the workers that hold VRAM"
+mut services/control/control_worker/main.py '        return compose(profile, "up", "-d", "--no-deps", "--no-build", svc)' '        return compose(profile, "up", "-d", "--no-build", svc)' \
+    "starting a service may recreate the gateway and the core (no --no-deps)"
+mut gateway/localai_gateway/main.py '        if not local and not settings.api_key:' '        if False:' \
+    "the control buttons work on a gateway open to the network without a key"
+mut gateway/localai_gateway/main.py '    async def admin_act(name: AdminService, action: AdminAction, wait: bool = False):' '    async def admin_act(name: str, action: str, wait: bool = False):' \
+    "the gateway passes any name and action on to Docker control"
+mut services/control/control_worker/main.py '                                                stderr=asyncio.subprocess.STDOUT, cwd=PROJECT_DIR or None)' '                                                stderr=asyncio.subprocess.STDOUT)' \
+    "the control commands run outside the project folder (family mode breaks)"
 exit $rc

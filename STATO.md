@@ -44,10 +44,15 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
   (`~`), oltre ai modelli di Ollama misurati; l'utilizzo GPU è etichettato «carico»; la pagina si
   aggiorna appena un lavoro finisce. Lo «0%» che si vedeva durante la prova da zero era il carico di
   calcolo mentre si scaricavano i modelli (rete, non GPU).
+- **Pulsanti Build, Start, Stop** (2026-11-22), profilo `control`, spento di base: nella scheda
+  Services ogni servizio facoltativo si costruisce, si avvia e si ferma dalla pagina. Provato sul vero:
+  stop di speakers 0,4 s, start 0,3 s, build di reader 9,3 s; l'ID del container del gateway resta lo
+  stesso (non viene mai ricreato); il controllore gira senza capability, a filesystem in sola lettura,
+  senza porte, con la cartella del progetto montata in sola lettura.
 - **Prova da zero della fase 5** (commit `9c1081a`): 0 volumi, clone pulito, passi 3 e 12, collaudo
   superato in 747 s scaricando anche qwen3-vl. La prima volta aveva trovato la scrittura a mano data per
   «modello mancante» su un'installazione nuova: corretto (`pulls_model_on_first_use`).
-- **Test su CPU**: 93 test, 35 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
+- **Test su CPU**: 106 test, 40 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
   i workflow con Pillow seguendo le regole dei nodi veri), lint pulito, 26 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
@@ -183,6 +188,15 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   controlla sempre che la mutazione si applichi (lo script lo segnala con «?»).
 - La memoria per processo non si legge da dentro un container (`nvidia-smi` non sa a quale container
   appartiene un processo): i worker dichiarano se hanno un modello caricato e la loro stima.
+- **Il controllore e il socket di Docker**: chi parla al socket comanda la macchina. Per questo è un
+  container a parte (non il gateway, che riceve file dall'esterno), con sei nomi di servizio e tre azioni
+  fisse, nessun argomento libero e nessuna shell; il gateway accetta le azioni solo su 127.0.0.1 o con la
+  chiave API. Scelto dal maintainer fra le alternative.
+- **`COMPOSE_FILE` relativo nel controllore**: in modalità famiglia il `.env` locale ha
+  `COMPOSE_FILE=docker-compose.yml:docker-compose.local-ai.yml`; compose risolve quei percorsi rispetto
+  alla cartella corrente, che nel container era `/srv`, e ogni azione usciva con codice 1. Ora i comandi
+  girano con `cwd` nella cartella del progetto (montata allo stesso percorso dell'host, `${PWD}`); c'è un
+  test e una mutazione.
 - Il volume `local-ai-core_ollama` (Ollama interno, ~14 GB) è stato rimosso il 2026-11-22 col sì del
   maintainer: in modalità famiglia non serve; in modalità autonoma i modelli si riscaricano da soli.
 
