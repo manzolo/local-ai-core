@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 generic=(
     '/home/[a-z]'                                   # home directories
     '\b192\.168\.[0-9]+\.[0-9]+'                    # LAN addresses
-    '(^|[^=.0-9])10\.[0-9]+\.[0-9]+\.[0-9]+\b'  # not a version like ==10.4.0.35
+    '(^|[^=.0-9`])10\.[0-9]+\.[0-9]+\.[0-9]+\b'  # not a version like ==10.4.0.35 or `10.4.0.35`
     '\b[a-z0-9-]+\.lan\b'                           # LAN hostnames
     '\b[A-Za-z0-9._%-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b' # e-mail addresses
     '(api[_-]?key|token|password|secret)\s*[:=]\s*["'"'"']?[A-Za-z0-9/+_-]{12,}'
