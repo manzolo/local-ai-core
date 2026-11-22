@@ -60,6 +60,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - **La cronologia git contiene un nome di persona** nei primi commit di questo file:
   `scripts/grep-private.sh --history` lo mostra. Prima del push: ripartire da un commit unico pulito
   (o riscrivere la cronologia) e rilanciare `--history`.
+- **Autore dei commit**: oggi è l'identità della configurazione globale di git, con nome ed email
+  personali, e si pubblica con ogni commit. Il maintainer decide se tenerla o usare l'indirizzo noreply
+  di GitHub (`git config user.email` solo in questo repo) prima del commit pulito.
 - Verificare di nuovo una per una le licenze dei modelli e la fonte di ciascuna.
 - L'URL del repo nei documenti (`github.com/manzolo/local-ai-core`) esiste solo dopo la pubblicazione.
 - La CI di GitHub Actions non è ancora mai girata: la prima esecuzione sarà al primo push.

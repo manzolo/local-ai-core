@@ -14,7 +14,7 @@ generic=(
     '\b192\.168\.[0-9]+\.[0-9]+'                    # LAN addresses
     '\b10\.[0-9]+\.[0-9]+\.[0-9]+\b'
     '\b[a-z0-9-]+\.lan\b'                           # LAN hostnames
-    '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z.]{2,}' # e-mail addresses
+    '\b[A-Za-z0-9._%-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b' # e-mail addresses
     '(api[_-]?key|token|password|secret)\s*[:=]\s*["'"'"']?[A-Za-z0-9/+_-]{12,}'
 )
 pats=("${generic[@]}")
@@ -34,6 +34,10 @@ if [ "${1:-}" = "--history" ]; then
         hits=$(git log --all -p --format='commit %h' -- . ':!scripts/grep-private.sh' 2>/dev/null | grep -iE -- "$p" | head -5)
         if [ -n "$hits" ]; then echo "✗ in history: /$p/"; printf '%s\n' "$hits" | sed 's/^/    /'; found=1; fi
     done
+fi
+if [ "${1:-}" = "--history" ]; then
+    echo "· commit authors (published with every commit):"
+    git log --all --format='    %an <%ae>' | sort -u
 fi
 imgs=$(printf '%s\n' "$(git ls-files --cached --others --exclude-standard)" | grep -cE '\.(png|jpe?g|gif|webp)$')
 [ "$imgs" -gt 0 ] && echo "· $imgs images not searched: check them by eye"
