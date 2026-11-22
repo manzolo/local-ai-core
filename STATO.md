@@ -1,7 +1,9 @@
 # Stato di local-ai-core
 
 Aggiornato: 2026-11-22 (sessione 1). **Fase 1 completata e collaudata. Prossima: fase 2, documenti.**
-Niente è pubblicato: repo git locale su `main`, nessun remoto.
+Repo su GitHub `manzolo/local-ai-core`, **privato** finché il maintainer non lo apre (fase 6).
+Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
+tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
 
 ## Cosa funziona (provato davvero)
 
@@ -54,18 +56,13 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 | Licenza del codice | MIT | da brief; licenze dei modelli in `docs/licenses.md` |
 | Brief di partenza | `PROMPT.md` fuori da git | contiene percorsi e nomi privati |
 | Nomi privati da cercare | in `.private-patterns`, fuori da git | scriverli nello script pubblico li pubblicherebbe |
+| Nome ed email del maintainer | ammessi nel repo e nei commit | deciso dal maintainer il 2026-11-22 |
 
 ## Da fare prima della pubblicazione (fase 6)
 
-- **La cronologia git contiene un nome di persona** nei primi commit di questo file:
-  `scripts/grep-private.sh --history` lo mostra. Prima del push: ripartire da un commit unico pulito
-  (o riscrivere la cronologia) e rilanciare `--history`.
-- **Autore dei commit**: oggi è l'identità della configurazione globale di git, con nome ed email
-  personali, e si pubblica con ogni commit. Il maintainer decide se tenerla o usare l'indirizzo noreply
-  di GitHub (`git config user.email` solo in questo repo) prima del commit pulito.
 - Verificare di nuovo una per una le licenze dei modelli e la fonte di ciascuna.
 - L'URL del repo nei documenti (`github.com/manzolo/local-ai-core`) esiste solo dopo la pubblicazione.
-- La CI di GitHub Actions non è ancora mai girata: la prima esecuzione sarà al primo push.
+- Rendere pubblico il repo, topic `local-ai`, riga in `local-ai-lab`: solo col sì del maintainer.
 
 ## Scelte aperte
 
