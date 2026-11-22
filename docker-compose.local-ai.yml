@@ -21,6 +21,11 @@ services:
       - default
       - local-ai-net
 
+  reader:
+    networks:
+      - default
+      - local-ai-net
+
 networks:
   local-ai-net:
     external: true

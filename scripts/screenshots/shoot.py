@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 BASE, OUT = sys.argv[1].rstrip("/"), sys.argv[2]
 QUESTION = "How much did the bathroom repair cost, and how did I pay?"
 SCAN = "/fixtures/invoice-scan.pdf"  # the invented bill, as a scan (documents profile only)
+NOTE = "/note/note.jpg"               # an invented note in a handwriting font (handwriting profile)
 DIALOGUE = "/speech/dialogue.ogg"     # two public-domain synthetic voices (transcribe + speakers profiles)
 DESKTOP = {"width": 1180, "height": 860}
 PHONE = {"width": 390, "height": 844}
@@ -124,6 +125,25 @@ with sync_playwright() as pw:
                             "document.querySelector('#img-state').textContent === ''", timeout=600_000)
         p.wait_for_timeout(3500)
         shot(p, "images-cutout", full=True)
+
+    if os.path.exists(NOTE):
+        p = page(b, DESKTOP, tab="handwriting")
+        p.wait_for_function("!document.querySelector('#hw-go').disabled", timeout=30_000)
+        p.set_input_files("#hw-file", NOTE)
+        p.click("#hw-go")
+        p.wait_for_selector("#hw-out:not([hidden])", timeout=600_000)
+        p.wait_for_timeout(3500)
+        shot(p, "handwriting", full=True)
+
+    p = page(b, DESKTOP, tab="voice")
+    p.wait_for_timeout(1500)
+    if p.is_enabled("#vo-go"):
+        p.fill("#vo-text", "Welcome home. The heating has been on since 6:30, and dinner is at 8.\n\n"
+                           "Tomorrow the plumber comes at nine: leave the side gate open.")
+        p.click("#vo-go")
+        p.wait_for_selector("#vo-out:not([hidden])", timeout=600_000)
+        p.wait_for_timeout(3500)
+        shot(p, "voice", full=True)
 
     p = b.new_context(viewport=DESKTOP, device_scale_factor=2).new_page()
     p.goto(f"{BASE}/docs")

@@ -18,6 +18,7 @@ import time
 import uuid
 from typing import Any, Literal
 
+import httpx
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -38,6 +39,7 @@ class Settings:
         self.ollama_host = env.get("OLLAMA_HOST", "http://ollama:11434")
         self.llm_model = env.get("OLLAMA_MODEL", "qwen3.5:9b")
         self.embed_model = env.get("EMBED_MODEL", "bge-m3")
+        self.vision_model = env.get("VISION_MODEL", "qwen3-vl:8b-instruct")
         self.api_key = env.get("LOCAL_AI_API_KEY", "")
         self.max_upload_mb = int(env.get("MAX_UPLOAD_MB", "50"))
         self.auto_pull = env.get("AUTO_PULL_MODELS", "true").lower() in ("1", "true", "yes")
@@ -48,7 +50,8 @@ class Settings:
         self.static_dir = env.get("STATIC_DIR", os.path.join(os.path.dirname(HERE), "static"))
         self.workers = {}
         default_workers = ("search=http://search:8000 documents=http://documents:8000 "
-                           "transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000")
+                           "transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000 "
+                           "reader=http://reader:8000 voice=http://voice:8000")
         for item in env.get("WORKERS", default_workers).split():
             name, _, url = item.partition("=")
             if name and url:
@@ -222,7 +225,9 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
             for s in info.get("services", []):
                 uses_ollama = s.get("ollama", True)
                 key = model_key(s["model"]) if s.get("model") and uses_ollama else None
-                if not uses_ollama:
+                if s.get("accepted") is False:
+                    state = "license_not_accepted"
+                elif not uses_ollama:
                     state = "ready"
                 elif present is None:
                     state = "ollama_unreachable"
@@ -468,13 +473,92 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                               {"filename": os.path.basename(src), "background": background}, job_dir)
         return await maybe_wait(job, wait)
 
-    @app.get("/v1/jobs/{job_id}/file", dependencies=[v1], tags=["jobs"], summary="The file a job produced (PNG)",
-             response_class=FileResponse)
+    @app.get("/v1/jobs/{job_id}/file", dependencies=[v1], tags=["jobs"],
+             summary="The file a job produced (an image or audio)", response_class=FileResponse)
     async def job_file(job_id: str):
         job = app.state.jobs.get(job_id)
         if not job or not job.file or not os.path.isfile(job.file):
             raise HTTPException(404, "this job has no file (or it is gone: files live as long as their job)")
-        return FileResponse(job.file, media_type="image/png", filename=f"{job.kind}-{job.id}.png")
+        ext = os.path.splitext(job.file)[1]
+        return FileResponse(job.file, media_type=MEDIA_TYPES.get(ext, "application/octet-stream"),
+                            filename=f"{job.kind}-{job.id}{ext}")
+
+    @app.post("/v1/handwriting", dependencies=[v1], tags=["handwriting"], status_code=202,
+              summary="Photo of handwritten notes → text, with a vision model on Ollama (job)")
+    async def handwriting(file: UploadFile = File(description="the photo of the page"),
+                          expect: str | None = Form(None, max_length=20000,
+                                                    description="the text the page should say: scored"),
+                          wait: bool = False):
+        w = await worker_for("handwriting")
+        job_dir, src = await save_image_upload(settings, file)
+        model = settings.vision_model
+
+        async def run(job):
+            try:
+                await ensure_vram(app, job, 7, exclude=w.name, keep_model=model)
+                res = None
+                async for ev in w.stream("/read", {"path": src, "expect": expect}):
+                    if ev["type"] == "progress":
+                        await job.set_progress(ev.get("done"), ev.get("total"), ev.get("message"))
+                    elif ev["type"] == "result":
+                        res = {k: v for k, v in ev.items() if k != "type"}
+                if res is None:
+                    raise JobFailed("the reader ended without a result")
+                return res
+            finally:
+                shutil.rmtree(job_dir, ignore_errors=True)
+
+        job = app.state.jobs.submit("handwriting", {"filename": os.path.basename(src)}, run)
+        return await maybe_wait(job, wait)
+
+    @app.get("/v1/voices", dependencies=[v1], tags=["voice"], summary="The built-in voices of XTTS-v2")
+    async def voices():
+        w = await worker_for("voice")
+        try:
+            async with w._client(httpx.Timeout(600, connect=5)) as c:
+                r = await c.get("/voices")
+        except httpx.HTTPError as e:
+            raise HTTPException(503, f"voice worker not reachable: {e}") from None
+        if r.status_code != 200:
+            raise HTTPException(r.status_code, r.json().get("detail", r.text))
+        return r.json()
+
+    @app.post("/v1/speak", dependencies=[v1], tags=["voice"], status_code=202,
+              summary="Text → speech with XTTS-v2, NON-COMMERCIAL use only (job; the audio at /v1/jobs/{id}/file)")
+    async def speak(req: SpeakIn, wait: bool = False):
+        w = await worker_for("voice")
+        info = next((s for s in (await w.info())["services"] if s["name"] == "voice"), {})
+        if info.get("accepted") is False:
+            raise HTTPException(403, "XTTS-v2 is under the Coqui Public Model License: non-commercial use only. "
+                                     "To accept it, set XTTS_ACCEPT_CPML=yes in .env and restart the stack")
+        job_dir = os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
+        os.makedirs(job_dir, exist_ok=True)
+        listener = next((x for x in app.state.workers.values() if "transcribe" in x.services), None)
+
+        async def run(job):
+            try:
+                keep = {w.name} | ({listener.name} if req.verify and listener else set())
+                await ensure_vram(app, job, 8 if req.verify else 3, exclude=keep)
+                out, res = os.path.join(job_dir, f"speech.{req.format}"), None
+                async for ev in w.stream("/speak", {**req.model_dump(), "out": out}):
+                    if ev["type"] == "progress":
+                        await job.set_progress(ev.get("done"), ev.get("total"), ev.get("message"))
+                    elif ev["type"] == "result":
+                        res = {k: v for k, v in ev.items() if k != "type"}
+                if res is None:
+                    raise JobFailed("the voice worker ended without a result")
+                dest = os.path.join(results_dir(settings), f"{job.id}.{req.format}")
+                shutil.move(out, dest)
+                job.file = dest
+                return {**res, "file": f"/v1/jobs/{job.id}/file",
+                        "license": "XTTS-v2, Coqui Public Model License: non-commercial use only; the notice is "
+                                   "inside the file. Terms: https://huggingface.co/coqui/XTTS-v2/blob/main/LICENSE.txt"}
+            finally:
+                shutil.rmtree(job_dir, ignore_errors=True)
+
+        params = {"voice": req.voice, "language": req.language, "chars": len(req.text)}
+        job = app.state.jobs.submit("speak", params, run)
+        return await maybe_wait(job, wait)
 
     @app.get("/v1/library", dependencies=[v1], tags=["documents"], summary="Documents added to the library")
     async def library_list():
@@ -560,6 +644,15 @@ class AskIn(BaseModel):
     model: str | None = Field(None, description="Ollama model (default OLLAMA_MODEL)")
 
 
+class SpeakIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000, examples=["Welcome home. The heating is on."])
+    voice: str = Field("Claribel Dervla", description="a built-in voice: GET /v1/voices")
+    language: str = Field("en", description="en, it, es, fr, de, pt, pl, tr, ru, nl, cs, ar, zh-cn, ja, hu, ko, hi")
+    format: Literal["wav", "mp3", "ogg"] = "wav"
+    verify: bool = Field(True, description="listen to each piece again with the transcriber (when it runs) and "
+                                           "redo the ones that do not say their text")
+
+
 class GenerateIn(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000, examples=["a lighthouse on a cliff at sunset, oil painting"])
     negative: str = Field("blurry, deformed, low quality, text, watermark", max_length=2000,
@@ -606,6 +699,7 @@ DOC_TYPES = {".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".png", ".jpg",
 LIB_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.md$")
 
 
+MEDIA_TYPES = {".png": "image/png", ".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg"}
 IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
 
@@ -670,8 +764,9 @@ async def ensure_vram(app, job, needed_gb, exclude=None, keep_model=None):
                                   "needed_gb": needed_gb})
         with contextlib.suppress(Exception):
             await app.state.ollama.unload(m["name"])
+    keep = exclude if isinstance(exclude, set) else {exclude}
     for w in app.state.workers.values():
-        if w.name == exclude:
+        if w.name in keep:
             continue
         with contextlib.suppress(Exception):
             if (await w.post("/unload", {}, timeout=60)).get("unloaded"):

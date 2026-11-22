@@ -187,3 +187,106 @@ def image_worker(tmp_path, monkeypatch):
     img.app.state.comfy, img.app.state.downloads, img.app.state.blobs = comfy, downloads, blobs
     img.app.state.models_root = str(root)
     return img.app
+
+
+# ------------------------------------------------------------------ handwriting and voice
+
+@pytest.fixture
+def reader_worker(tmp_path, monkeypatch):
+    """The real reader worker with a fake vision model: a page with ink → its text, a blank page → [no text]."""
+    import base64
+    import io
+    import json
+
+    import httpx
+    from PIL import Image, ImageStat
+    from reader_worker import main as rd
+
+    uploads = tmp_path / "uploads"
+    uploads.mkdir(exist_ok=True)
+    monkeypatch.setattr(rd, "UPLOADS", str(uploads))
+    state = {"models": ["qwen3-vl:8b-instruct"], "pulled": [], "chats": 0}
+    note = open(os.path.join(ROOT, "services/reader/reader_worker/selftest/note.txt")).read()
+
+    def handle(request):
+        path = request.url.path
+        if path == "/api/tags":
+            return httpx.Response(200, json={"models": [{"name": m} for m in state["models"]]})
+        if path == "/api/pull":
+            m = json.loads(request.content)["model"]
+            state["pulled"].append(m)
+            state["models"].append(m)
+            lines = [{"status": "pulling", "digest": "sha256:a", "completed": 5, "total": 10},
+                     {"status": "pulling", "digest": "sha256:a", "completed": 10, "total": 10}, {"status": "success"}]
+            return httpx.Response(200, content="".join(json.dumps(x) + "\n" for x in lines))
+        if path == "/api/chat":
+            state["chats"] += 1
+            img = Image.open(io.BytesIO(base64.b64decode(json.loads(request.content)["messages"][0]["images"][0])))
+            blank = max(ImageStat.Stat(img.convert("L")).stddev) < 3
+            reply = "[no text]" if blank else note
+            lines = [{"message": {"content": reply}, "done": False},
+                     {"message": {"content": ""}, "done": True, "done_reason": "stop"}]
+            return httpx.Response(200, content="".join(json.dumps(x) + "\n" for x in lines))
+        return httpx.Response(404)
+
+    rd.app.state.transport = httpx.MockTransport(handle)
+    rd.app.state.fake = state
+    return rd.app
+
+
+class FakeXTTS:
+    sample_rate = 24000
+
+    def __init__(self):
+        self.loaded = False
+        self.spoken = []
+
+    def load(self):
+        self.loaded = True
+
+    def voices(self):
+        return sorted(["Claribel Dervla", "Damien Black", "Ana Florence"] + [f"Voice {i:02d}" for i in range(55)])
+
+    def speak(self, piece, language, voice):
+        import numpy as np
+        self.spoken.append(piece)
+        n = int(0.06 * len(piece) * self.sample_rate)
+        return (0.3 * np.sin(np.arange(n) * 2 * np.pi * 220 / self.sample_rate)).astype(np.float32)
+
+    def unload(self):
+        was, self.loaded = self.loaded, False
+        return was
+
+
+@pytest.fixture
+def voice_worker(tmp_path, monkeypatch):
+    """The real voice worker with a fake XTTS and a fake transcriber. Like Whisper, the fake writes numbers
+    as digits ("six thirty" → "6.30", "eight" → "8"); it garbles a piece's first try when its text contains
+    "glitch", as a real voice sometimes does."""
+    import json
+
+    import httpx
+    from voice_worker import main as vw
+
+    uploads = tmp_path / "uploads"
+    uploads.mkdir(exist_ok=True)
+    monkeypatch.setattr(vw, "UPLOADS", str(uploads))
+    monkeypatch.setenv("XTTS_ACCEPT_CPML", "yes")
+    tries = {}
+
+    def listen(request):
+        if request.url.path != "/transcribe":
+            return httpx.Response(404)
+        expect = json.loads(request.content)["expect"]
+        tries[expect] = tries.get(expect, 0) + 1
+        heard = expect.replace("six thirty", "6.30").replace("eight", "8")
+        if "glitch" in expect and tries[expect] == 1:
+            heard = "grumble mumble something else entirely"
+        if "Tomorrow it will rain" in expect:  # the self-test's "different expected text": it heard the phrase
+            heard = "Seven blue boxes arrived at the station on Tuesday morning"
+        return httpx.Response(200, content=json.dumps({"type": "result", "text": heard}) + "\n")
+
+    vw.app.state.engine = FakeXTTS()
+    vw.app.state.transcriber_transport = httpx.MockTransport(listen)
+    vw.app.state.tries = tries
+    return vw.app

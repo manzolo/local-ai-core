@@ -1,0 +1,4 @@
+# Reader worker (handwriting): the runtime pins plus Pillow to straighten and shrink photos. The reading is
+# done by a vision model on Ollama.
+-r runtime.txt
+pillow==13.0.0

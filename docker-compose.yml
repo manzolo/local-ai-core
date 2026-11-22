@@ -5,6 +5,8 @@
 #   --profile transcribe                    + speech → text and subtitles (faster-whisper, ~3.4 GB, ~5 GB VRAM)
 #   --profile speakers                      + who said what (SpeechBrain, ~6.6 GB, ~1 GB VRAM)
 #   --profile image                         + images: generate, upscale, cut out (ComfyUI, ~10 GB, ~8 GB VRAM)
+#   --profile handwriting                   + handwritten notes → text (qwen3-vl on Ollama, ~7 GB VRAM)
+#   --profile voice                         + text → speech (XTTS-v2: NON-COMMERCIAL use only, see .env)
 #
 # Standalone: this file brings its own Ollama and never touches the shared `local-ai-net` network.
 # To use the Ollama of the local-ai-lab family instead, add the override:
@@ -25,6 +27,7 @@ services:
       OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3.5:9b}
       EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+      VISION_MODEL: ${VISION_MODEL:-qwen3-vl:8b-instruct}
       LOCAL_AI_API_KEY: ${LOCAL_AI_API_KEY:-}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
       AUTO_PULL_MODELS: ${AUTO_PULL_MODELS:-true}
@@ -32,6 +35,7 @@ services:
       WORKERS: >-
         search=http://search:8000 documents=http://documents:8000
         transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000
+        reader=http://reader:8000 voice=http://voice:8000
     volumes:
       - gateway-data:/data
       - uploads:/data/uploads       # files being converted: deleted when their job ends
@@ -152,6 +156,45 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
 
+  reader:
+    # photos of handwritten notes → text, with a vision model on Ollama. Off unless `--profile handwriting`.
+    profiles: ["handwriting"]
+    build:
+      context: .
+      dockerfile: services/reader/Dockerfile
+    image: local-ai-core/reader:0.1.0
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      VISION_MODEL: ${VISION_MODEL:-qwen3-vl:8b-instruct}
+      IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
+    volumes:
+      - uploads:/data/uploads
+    restart: unless-stopped
+
+  voice:
+    # text → speech with XTTS-v2. NON-COMMERCIAL use only (Coqui Public Model License): it runs only after
+    # you accept the license with XTTS_ACCEPT_CPML=yes in .env. Off unless `--profile voice`.
+    profiles: ["voice"]
+    build:
+      context: .
+      dockerfile: services/voice/Dockerfile
+    image: local-ai-core/voice:0.1.0
+    environment:
+      XTTS_ACCEPT_CPML: ${XTTS_ACCEPT_CPML:-}
+      IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
+      TRANSCRIBER_URL: http://transcriber:8000   # each piece is listened to again when `transcribe` is on
+    volumes:
+      - uploads:/data/uploads
+      - voice-models:/models        # XTTS-v2, ~1.9 GB, downloaded on first use after the license is accepted
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:0.40.16@sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592
     # no published port and no fixed container name: it never clashes with an Ollama already on the host
@@ -175,4 +218,5 @@ volumes:
   transcriber-models:
   speakers-models:
   image-models:
+  voice-models:
   ollama:

@@ -14,6 +14,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = {"runtime.txt": "gateway, search", "torch.txt": "documents, speakers", "documents.txt": "documents",
          "transcriber.txt": "transcriber", "speakers.txt": "speakers", "image.txt": "image",
+         "reader.txt": "reader", "voice.txt": "voice",
          "dev.txt": "tests only"}
 
 
@@ -32,6 +33,7 @@ def pins():
 KNOWN = {
     "comfy-aimdo": "GPL-3.0 (LICENSE in github.com/Comfy-Org/comfy-aimdo)",
     "comfyui-frontend-package": "GPL-3.0 (github.com/Comfy-Org/ComfyUI_frontend)",
+    "torchcodec": "BSD-3-Clause (github.com/pytorch/torchcodec)",
 }
 
 

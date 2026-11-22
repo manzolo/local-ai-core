@@ -2,8 +2,8 @@
 
 **Local AI services on your own GPU, behind one API and one web page.** Search your notes by meaning, turn
 PDFs and scans into Markdown, get answers that cite the note or document they come from (every citation
-checked), transcribe audio and video with who said what, and make, upscale and cut out images. Each
-service is a compose profile you turn on. Nothing leaves your machine.
+checked), transcribe audio and video with who said what, make, upscale and cut out images, read handwritten notes
+and turn text into speech. Each service is a compose profile you turn on. Nothing leaves your machine.
 
 [![CI](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml/badge.svg)](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -35,10 +35,13 @@ GPU to searching your own notes.
 | [Transcribe](docs/services/transcribe.md) | audio and video → text, SRT, WebVTT; check against an expected text | faster-whisper large-v3 | ~5 GB | MIT | `transcribe` |
 | [Speakers](docs/services/transcribe.md) | who said what in a transcript | SpeechBrain ECAPA | ~1 GB | Apache-2.0 | `speakers` |
 | [Images](docs/services/images.md) | text → image, upscale ×2/×4, cut out | SDXL + Lightning, RealESRGAN, BiRefNet (ComfyUI) | ~8 GB | OpenRAIL++-M (use restrictions) · BSD-3 · MIT | `image` |
+| [Handwriting](docs/services/handwriting.md) | photos of handwritten notes → text | qwen3-vl:8b-instruct | ~7 GB | Apache-2.0 | `handwriting` |
+| [Voice](docs/services/voice.md) | text → speech, long texts, listened to again | XTTS-v2 | ~3 GB | **non-commercial only** (CPML), you accept it | `voice` |
 
 Turn profiles on with `docker compose --profile docs --profile transcribe --profile speakers --profile image
-up -d`. The GPU is shared: before each job the gateway frees what the others hold. The roadmap adds
-handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each in its own profile.
+--profile handwriting up -d` (or `COMPOSE_PROFILES=…` in `.env`). The GPU is shared: before each job the
+gateway frees what the others hold. **Voice** is for non-commercial use only and stays off until you accept
+its license (`XTTS_ACCEPT_CPML=yes`).
 
 ## Documentation
 
@@ -55,7 +58,8 @@ handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each in its own prof
 | [Troubleshooting](docs/troubleshooting.md) | fix the usual problems |
 
 Services: [Search and Ask](docs/services/search-ask.md) · [Documents](docs/services/documents.md) ·
-[Transcribe and speakers](docs/services/transcribe.md) · [Images](docs/services/images.md).
+[Transcribe and speakers](docs/services/transcribe.md) · [Images](docs/services/images.md) ·
+[Handwriting](docs/services/handwriting.md) · [Voice](docs/services/voice.md).
 
 ## At a glance
 
@@ -66,6 +70,7 @@ flowchart LR
     G --> D[documents worker<br/>profile docs]
     G --> T[transcriber · speakers<br/>profiles transcribe, speakers]
     G --> I[image worker · ComfyUI<br/>profile image]
+    G --> R[reader · voice<br/>profiles handwriting, voice]
     S --> O[(ollama<br/>on the GPU)]
     N[/your notes, read-only/] --> S
 ```

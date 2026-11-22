@@ -25,6 +25,10 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
   TXT, SRT or WebVTT. *Check it says a given text* scores the transcript against an expected text.
 - **Images** (profile `image`): *Generate*, *Upscale* or *Cut out*; the result shows on a checkerboard,
   so transparency is visible, and downloads as PNG. The license note of SDXL stays under it.
+- **Handwriting** (profile `handwriting`): drop a photo of a page; the text appears, to copy or download.
+- **Voice** (profile `voice`): a red notice stays until the non-commercial license of XTTS-v2 is accepted;
+  then type a text, pick a voice and a language, and listen; the result says whether every piece was
+  listened to again and still says its text.
 - **Services**: each service with its model, VRAM, license and last test. **Run test** runs its built-in
   test and shows every check as it completes.
 
@@ -35,6 +39,8 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
 ![Transcribe](img/transcribe.png)
 
 ![Images](img/images-generate.png)
+
+![Handwriting](img/handwriting.png)
 
 ![Services and a test run](img/services.png)
 

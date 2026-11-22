@@ -163,6 +163,20 @@ with SDXL, whose license allows commercial use but forbids some uses: see [Image
 
 ![A picture cut out on a transparent background](img/images-cutout.png)
 
+## 12. Read handwriting, speak text
+
+```bash
+docker compose --profile handwriting up -d
+```
+
+The **Handwriting** tab turns a photo of a handwritten page into text. Try the invented note in
+`services/reader/reader_worker/selftest/note.jpg`.
+
+The **Voice** tab turns text into speech with XTTS-v2, which is for **non-commercial use only**. It stays
+off until you accept its license: read <https://huggingface.co/coqui/XTTS-v2/blob/main/LICENSE.txt>, then write `XTTS_ACCEPT_CPML=yes` in
+`.env` and run `docker compose --profile voice --profile transcribe up -d` (the transcriber listens to the
+voice again). Details: [Handwriting](services/handwriting.md), [Voice](services/voice.md).
+
 ## Next
 
 - Already running [ollama-docker](https://github.com/manzolo/ollama-docker)? Use its Ollama instead of a

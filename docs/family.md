@@ -23,7 +23,7 @@ docker compose -f docker-compose.yml -f docker-compose.local-ai.yml up -d
 ```
 
 (`make up-family` does the same.) On `local-ai-net`, the name `ollama` is the family's container, so
-nothing else changes. The models the stack needs are downloaded into that Ollama if it lacks them.
+nothing else changes: search, ask and handwriting all use it. The models the stack needs are downloaded into that Ollama if it lacks them.
 
 No `ollama-docker`, but you want the network for other projects: `docker network create local-ai-net`.
 

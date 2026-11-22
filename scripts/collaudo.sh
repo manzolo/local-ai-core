@@ -107,5 +107,23 @@ if py 'import json,sys; s={x["name"]: x["state"] for x in json.load(sys.stdin)["
     get /v1/status | py 'import json,sys; s=json.load(sys.stdin); g=s["gpu"] or {}; print("    VRAM now", g.get("vram_used_gb"), "of", g.get("vram_total_gb"), "GB; in Ollama:", ", ".join(m["name"] for m in s["ollama"]["loaded"]) or "nothing")'
 fi
 
+here=$(cd "$(dirname "$0")/.." && pwd)
+if py 'import json,sys; s={x["name"]: x["state"] for x in json.load(sys.stdin)["services"]}; sys.exit(s.get("handwriting") != "ready")' <<<"$services"; then
+    echo "▸ handwriting"
+    note="$here/services/reader/reader_worker/selftest/note"
+    res=$(curl -sf -X POST ${LOCAL_AI_API_KEY:+-H "X-API-Key: $LOCAL_AI_API_KEY"} -F "file=@$note.jpg" \
+          --form-string "expect=$(cat "$note.txt")" "$BASE/v1/handwriting?wait=true")
+    if py 'import json,sys; r=json.load(sys.stdin)["result"]; print("   ", " ".join(r["text"].split())[:100]); sys.exit(0 if r["matches"] else 1)' <<<"$res"; then
+        ok "handwritten note read, similarity ≥ 0.8"
+    else ko "handwriting wrong: ${res:0:300}"; fi
+fi
+if py 'import json,sys; s={x["name"]: x["state"] for x in json.load(sys.stdin)["services"]}; sys.exit(s.get("voice") != "ready")' <<<"$services"; then
+    echo "▸ voice (non-commercial license accepted in .env)"
+    res=$(post "/v1/speak?wait=true" '{"text":"Welcome home. The heating has been on since 6:30, and dinner is at 8.","format":"ogg"}')
+    if py 'import json,sys; r=json.load(sys.stdin)["result"]; v=r["verify"]; print("   ", r["duration"], "s,", r["pieces"], "pieces, lowest similarity", v["min_score"], ",", v["retried"], "redone"); sys.exit(0 if v["checked"] and not v["below"] else 1)' <<<"$res"; then
+        ok "spoken, every piece listened to again and right"
+    else ko "voice wrong: ${res:0:300}"; fi
+fi
+
 [ $rc = 0 ] && echo "✓ collaudo passed" || echo "✗ collaudo FAILED"
 exit $rc

@@ -61,8 +61,8 @@ mut services/image/image_worker/models.py '            if h.hexdigest() != m.sha
 mut gateway/localai_gateway/jobs.py '            if self.on_evict:' '            if False:' \
     "result images outlive their job"
 mut gateway/localai_gateway/main.py '    for w in app.state.workers.values():
-        if w.name == exclude:' '    for w in []:
-        if w.name == exclude:' \
+        if w.name in keep:' '    for w in []:
+        if w.name in keep:' \
     "a full GPU does not make the other workers free their VRAM"
 mut gateway/localai_gateway/clients.py '            if attempt == RESTART_WAIT - 1:' '            if True:' \
     "a worker restarting to free VRAM is reported as down"
@@ -74,4 +74,21 @@ mut services/image/image_worker/main.py '            if app.state.last_task not 
     "ComfyUI keeps SDXL in memory when the next job is a different one"
 mut gateway/localai_gateway/main.py '                await ensure_vram(app, job, need, exclude=w.name, keep_model=llm)' '                pass' \
     "a service test does not make room on the GPU"
+mut services/reader/reader_worker/main.py '    empty = text == NO_TEXT or not words(text.replace(NO_TEXT, ""))' '    empty = False' \
+    "a blank page counts as read"
+mut gateway/localai_gateway/main.py '        if info.get("accepted") is False:' '        if False:' \
+    "the voice runs without its non-commercial license being accepted"
+mut services/voice/voice_worker/main.py '                for attempt in range(RETRIES if verify else 1):' '                for attempt in range(1):' \
+    "a garbled piece is not redone"
+mut services/voice/voice_worker/text.py '    clean = [re.sub(r"(\.\.\.|…|\.)+$", "", p).strip() for p in parts]' '    clean = [p.strip() for p in parts]' \
+    "XTTS gets the final full stop (and says dot)"
+mut services/voice/voice_worker/text.py '        if lang == "en" and len(s) == 4 and 1100 <= n <= 2099:' '        if False:' \
+    "years are read as plain numbers"
+mut gateway/localai_gateway/main.py '                keep = {w.name} | ({listener.name} if req.verify and listener else set())' '                keep = {w.name}' \
+    "the transcriber is unloaded right when the voice needs it"
+mut services/voice/voice_worker/main.py '    heard = re.sub(r"\b(\d{1,2})\.(\d{2})\b", r"\1:\2", heard)
+    return textmod.spell(heard, language)' '    return heard' \
+    "Whisper's digits are compared with the spelled-out words (good pieces redone)"
+mut services/voice/voice_worker/main.py '            write_wav(wav_path, samples, eng.sample_rate, notice=NOTICE)' '            write_wav(wav_path, samples, eng.sample_rate)' \
+    "the audio leaves without the license notice the CPML asks for"
 exit $rc

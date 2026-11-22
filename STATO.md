@@ -1,6 +1,6 @@
 # Stato di local-ai-core
 
-Aggiornato: 2026-11-22 (sessione 1). **Fasi 1-4 completate e collaudate. Prossima: fase 5, scrittura a mano e voce.**
+Aggiornato: 2026-11-22 (sessione 1). **Fasi 1-5 completate e collaudate: tutti i servizi del brief ci sono.**
 Repo su GitHub `manzolo/local-ai-core`, **pubblico dal 2026-11-22** (deciso dal maintainer), CI verde.
 Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
 tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
@@ -35,7 +35,11 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
 - **Prova da zero della fase 4** (commit `325c8b9`): 0 volumi, clone pulito, quick start passi 3 e 11,
   collaudo superato in 416 s scaricando ~15 GB di modelli. La prima prova da zero aveva trovato un
   esaurimento di memoria nello scontorno del collaudo: corretto (vedi trappole) prima del push.
-- **Test su CPU**: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
+- **Scrittura a mano e voce (fase 5)**, profili `handwriting` e `voice`: qwen3-vl:8b-instruct legge la
+  nota inventata con somiglianza 1,00 e lascia vuota la pagina bianca; XTTS-v2 parla con le 58 voci pronte,
+  numeri in lettere, ogni pezzo riascoltato da Whisper (somiglianza 1,00) e l'avviso di licenza dentro
+  ogni file (WAV, MP3, OGG). Collaudo completo con tutti gli 8 servizi superato.
+- **Test su CPU**: 91 test, 34 mutazioni tutte colte (vedi `docs/testing.md`). Prima della fase 5: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
   i workflow con Pillow seguendo le regole dei nodi veri), lint pulito, 26 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
@@ -69,6 +73,12 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - **VRAM**: `ensure_vram` prima di ogni job GPU (ask e collaudi compresi) libera Ollama (tranne il
   modello che serve) e chiede `/unload` agli altri worker; un worker GPU che si scarica **esce** e
   Docker lo riavvia pulito (`RESTART_TO_FREE_VRAM`), il gateway aspetta fino a 30 s un worker in riavvio.
+- **reader** (profilo `handwriting`): leggero, chiede la lettura a qwen3-vl su Ollama (lo scarica al primo
+  uso); in modalità famiglia usa l'Ollama di `local-ai-net`.
+- **voice** (profilo `voice`): XTTS-v2 via coqui-tts; **non parte senza `XTTS_ACCEPT_CPML=yes`** (non
+  accettiamo la licenza al posto di nessuno); solo voci pronte, niente clonazione; testi a pezzi, numeri
+  in lettere (en, it), riascolto col trascrittore e fino a 3 tentativi per pezzo; avviso di licenza nei
+  metadati di ogni file.
 - **search + ask** in un solo worker leggero: porting ripensato di `search.py` e `ask.py`
   (note + libreria, la libreria col prefisso `library/`; pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
   controllate, «non trovo» senza chiamare il modello). Prompt in inglese, risposta nella lingua della
@@ -98,6 +108,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 | Lingua OCR | una per richiesta, default `en` | RapidOCR ne regge una alla volta |
 | Checkpoint immagini | SDXL base 1.0 ufficiale, non Juggernaut | Juggernaut nel coltellino arrivava da un mirror senza licenza; `IMAGE_CHECKPOINT` per cambiarlo |
 | RealESRGAN | dalla release ufficiale su GitHub (BSD-3) | il mirror del coltellino dichiarava «other» |
+| Licenza XTTS | accettata **solo nel `.env` locale** di questo PC, dal maintainer, il 2026-11-22, per uso non commerciale | nel repo pubblico la voce resta spenta finché ognuno non la accetta |
+| Clonazione della voce | esclusa | nessuna voce di persone reali può entrare o essere copiata |
+| Font della pagina a mano | Caveat (OFL) da google/fonts a commit fissato, usato solo per disegnare la prova | il font non sta nel repo |
 | Liberare VRAM | fermare il processo (ComfyUI) o riavviare il container (gli altri) | `/free` e `empty_cache` lasciano contesto CUDA e cache: misurati 0,3-1 GB per worker |
 
 ## Da fare prima della pubblicazione (fase 6)
@@ -111,7 +124,8 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 1. Deciso col maintainer il 2026-11-22: PDF-Chatbot-Ollama-Langchain-Docker **archiviato**, sostituito
    da local-ai-core (nota in testa al suo README); **ollapdf affiancato** (chat Streamlit + LangChain),
    da rivalutare dopo qualche settimana d'uso. README di local-ai-lab aggiornato, topic `local-ai` messo.
-2. Licenza di XTTS (fase 5): solo uso non commerciale, profilo a parte spento di default.
+2. Fatto: XTTS in un profilo spento, licenza da accettare esplicitamente, avviso nei file.
+3. Da decidere: scheda su manzolo-home (proposta, non toccata).
 
 ## Note e trappole di questa sessione
 
@@ -150,14 +164,22 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   per `restart: unless-stopped`.
 - `Literal[2, 4]` di FastAPI non converte i valori dei form (`"4"`): usare un intero con limiti.
 - Il visualizzatore di immagini dell'agente ignora l'alfa: la trasparenza si misura sui pixel.
+- **Riascolto della voce e numeri**: Whisper scrive le cifre («since 6.30», «at 8») mentre alla voce si
+  danno in lettere; il confronto parola per parola bocciava pezzi giusti e li rifaceva. Ora il worker voce
+  confronta lui, dopo aver scritto in lettere anche le cifre sentite (6.30 come ora). Trovato dal collaudo.
+- **La CPML punta a un indirizzo morto** (`coqui.ai/cpml.txt`, Coqui ha chiuso): si usa il testo
+  conservato accanto al modello su Hugging Face. La licenza chiede che **chi riceve l'audio riceva anche i
+  termini o il loro indirizzo**: avviso scritto dentro ogni file. Esclude esplicitamente i progetti
+  finanziati con fondi pubblici e ogni uso da cui derivi un pagamento: per lavoro non va usata.
+- Nella prova delle mutazioni, una riga con `\b` scritta in Python finiva doppia nello script: si
+  controlla sempre che la mutazione si applichi (lo script lo segnala con «?»).
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Fase 5: `handwriting` (profilo `handwriting`): `qwen3-vl:8b-instruct` su Ollama, mai la variante
-thinking; `POST /v1/handwriting`; foto di prova sintetiche (scrittura generata, niente appunti veri).
-`voice` (profilo `voice`, **spento di default**): XTTS-v2 (coqui-tts 0.27.5), **solo uso non
-commerciale** (Coqui Public Model License) scritto nel README, nel catalogo e nella pagina; testi lunghi
-a pezzi, numeri in lettere, riascolto col trascrittore; solo voci pronte del modello, nessun campione
-personale. Verificare prima le licenze (qwen3-vl Apache-2.0 già vista).
+Tutti i servizi del brief ci sono. Restano, in ordine di utilità:
+1. la barra di stato mostra solo i modelli di Ollama: aggiungere quelli dei worker (XTTS, Whisper,
+   ComfyUI…), che oggi tengono VRAM senza comparire («In memory: nothing» con 7 GB occupati);
+2. scheda su manzolo-home: da proporre al maintainer, non toccare;
+3. rivalutare ollapdf dopo qualche settimana d'uso (affiancato, deciso il 2026-11-22).

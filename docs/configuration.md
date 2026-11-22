@@ -20,6 +20,8 @@ Everything is set with environment variables in a `.env` file next to `docker-co
 | `SEARCH_MIN_SCORE` | `0.35` | minimum similarity of a search hit (0–1) |
 | `IDLE_UNLOAD_MINUTES` | `10` | Ollama and the GPU workers free a model's VRAM after this many minutes unused |
 | `IMAGE_CHECKPOINT` | empty (SDXL base 1.0) | another SDXL checkpoint, put in the `image-models` volume under `checkpoints/`; check its license |
+| `VISION_MODEL` | `qwen3-vl:8b-instruct` | the Ollama vision model that reads handwriting (use an `-instruct` one) |
+| `XTTS_ACCEPT_CPML` | empty | `yes` accepts the Coqui Public Model License of XTTS-v2 (**non-commercial use only**): without it the voice stays off |
 | `WHISPER_MODEL` | `large-v3` | the faster-whisper model (`small`, `medium`, `large-v3`…): smaller is faster and less accurate |
 
 After a change: `docker compose up -d` (only the containers whose settings changed restart).
@@ -35,6 +37,8 @@ Light services start by default; heavy ones are compose profiles you turn on:
 | `transcribe` | speech → text and subtitles (faster-whisper) | ~3.4 GB | ~5 GB while transcribing |
 | `speakers` | who said what (SpeechBrain) | ~6.6 GB, PyTorch shared with `docs` | ~1 GB |
 | `image` | images: generate, upscale, cut out (ComfyUI) | ~10 GB, PyTorch shared | ~8 GB while working |
+| `handwriting` | handwritten notes → text (qwen3-vl on Ollama) | ~0.15 GB (the model is in Ollama) | ~7 GB while reading |
+| `voice` | text → speech (XTTS-v2, **non-commercial only**) | ~7 GB, PyTorch shared | ~3 GB |
 
 ```bash
 docker compose --profile docs up -d          # or COMPOSE_PROFILES=docs,transcribe,speakers in .env

@@ -19,12 +19,27 @@ const T = {
     invalid: "Cited numbers that match no excerpt: {n}. Treat the answer with care.",
     truncated: "The answer was cut at the length limit.", no_results: "Nothing above the score threshold.",
     model_secs: "{model} · {n} excerpts read · {s} s", cited: "cited",
-    st_ready: "ready", st_model_missing: "model missing", st_off: "off", st_ollama_unreachable: "engine down",
+    st_ready: "ready", st_model_missing: "model missing", st_license_not_accepted: "license not accepted", st_off: "off", st_ollama_unreachable: "engine down",
     model: "Model", vram: "VRAM", vram_val: "~{e} GB estimated · {u} GB in use", license: "License",
-    last_test: "Last test", never: "never", passed: "passed", failed: "failed", run_test: "Run test",
+    last_test: "Last test", use: "Use", never: "never", passed: "passed", failed: "failed", run_test: "Run test",
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
     vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
+    tab_handwriting: "Handwriting", tab_voice: "Voice",
+    hw_off: "The handwriting service is off: start the stack with docker compose --profile handwriting up -d.",
+    hw_drop: "Drop a photo of a handwritten page here, or choose one", hw_expect_sum: "Check it reads a given text",
+    hw_expect_ph: "The text the page says: the result shows how close the reading is.", hw_go: "Read",
+    hw_hint: "The photo is read by a vision model on this machine and deleted when the job ends.",
+    hw_meta: "{model} · {s} s", hw_empty: "No writing found on this page.", copy: "Copy", copied: "Copied",
+    hw_match: "It reads the expected text: similarity {s}.", hw_nomatch: "It does NOT read the expected text: similarity {s}.",
+    vo_off: "The voice service is off: start the stack with docker compose --profile voice up -d.",
+    vo_license_needed: "XTTS-v2 is for NON-COMMERCIAL use only (Coqui Public Model License). The voice stays off until you accept the license: XTTS_ACCEPT_CPML=yes in .env, then restart the stack.",
+    vo_ph: "The text to say. Long texts are fine: they are read in short pieces.", vo_voice: "Voice", vo_format: "Format",
+    vo_verify: "Listen to it again", vo_go: "Speak", vo_download: "Download",
+    vo_license: "Made with XTTS-v2: non-commercial use only, of the model and of the audio it makes.",
+    vo_working: "Speaking… piece {d} of {t}", vo_meta: "{dur} s · {n} piece(s) · {voice} · {s} s to make",
+    vo_checked: "Listened to again: every piece says its text (lowest similarity {s}){r}.", vo_redone: ", {n} redone",
+    vo_below: "These pieces still do not say their text: {p}", vo_unchecked: "Not listened to again: {n}",
     tab_images: "Images", img_off: "The image service is off: start the stack with docker compose --profile image up -d.",
     img_generate: "Generate", img_upscale: "Upscale", img_cutout: "Cut out",
     img_prompt_ph: "Describe the picture: subject, style, light…", img_size: "Size", img_seed: "Seed",
@@ -66,12 +81,27 @@ const T = {
     invalid: "Citati numeri che non corrispondono a nessun estratto: {n}. Prendi la risposta con cautela.",
     truncated: "La risposta è stata tagliata al limite di lunghezza.", no_results: "Niente sopra la soglia.",
     model_secs: "{model} · {n} estratti letti · {s} s", cited: "citato",
-    st_ready: "pronto", st_model_missing: "modello assente", st_off: "spento", st_ollama_unreachable: "motore giù",
+    st_ready: "pronto", st_model_missing: "modello assente", st_license_not_accepted: "licenza non accettata", st_off: "spento", st_ollama_unreachable: "motore giù",
     model: "Modello", vram: "VRAM", vram_val: "~{e} GB stimati · {u} GB in uso", license: "Licenza",
-    last_test: "Ultimo collaudo", never: "mai", passed: "superato", failed: "fallito", run_test: "Collauda",
+    last_test: "Ultimo collaudo", use: "Uso", never: "mai", passed: "superato", failed: "fallito", run_test: "Collauda",
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
+    tab_handwriting: "Scrittura", tab_voice: "Voce",
+    hw_off: "Il servizio di scrittura a mano è spento: avvia lo stack con docker compose --profile handwriting up -d.",
+    hw_drop: "Trascina qui la foto di una pagina scritta a mano, o sceglila", hw_expect_sum: "Controlla che legga un testo",
+    hw_expect_ph: "Il testo che dice la pagina: il risultato mostra quanto la lettura ci si avvicina.", hw_go: "Leggi",
+    hw_hint: "La foto la legge un modello di visione su questa macchina, e si cancella a fine lavoro.",
+    hw_meta: "{model} · {s} s", hw_empty: "Su questa pagina non c'è scrittura.", copy: "Copia", copied: "Copiato",
+    hw_match: "Legge il testo atteso: somiglianza {s}.", hw_nomatch: "NON legge il testo atteso: somiglianza {s}.",
+    vo_off: "Il servizio voce è spento: avvia lo stack con docker compose --profile voice up -d.",
+    vo_license_needed: "XTTS-v2 è SOLO per uso NON COMMERCIALE (Coqui Public Model License). La voce resta spenta finché non accetti la licenza: XTTS_ACCEPT_CPML=yes nel .env, poi riavvia lo stack.",
+    vo_ph: "Il testo da dire. Anche lungo: si legge a pezzi corti.", vo_voice: "Voce", vo_format: "Formato",
+    vo_verify: "Riascolta", vo_go: "Parla", vo_download: "Scarica",
+    vo_license: "Fatto con XTTS-v2: solo uso non commerciale, del modello e dell'audio che produce.",
+    vo_working: "Parlo… pezzo {d} di {t}", vo_meta: "{dur} s · {n} pezzi · {voice} · fatto in {s} s",
+    vo_checked: "Riascoltato: ogni pezzo dice il suo testo (somiglianza minima {s}){r}.", vo_redone: ", {n} rifatti",
+    vo_below: "Questi pezzi non dicono ancora il loro testo: {p}", vo_unchecked: "Non riascoltato: {n}",
     tab_images: "Immagini", img_off: "Il servizio immagini è spento: avvia lo stack con docker compose --profile image up -d.",
     img_generate: "Genera", img_upscale: "Ingrandisci", img_cutout: "Scontorna",
     img_prompt_ph: "Descrivi l'immagine: soggetto, stile, luce…", img_size: "Misura", img_seed: "Seme",
@@ -322,7 +352,7 @@ $("#reindex").addEventListener("click", async () => {
 
 // ----------------------------------------------------------------------------------- services
 
-const STATE_CLASS = { ready: "ready", model_missing: "warn", ollama_unreachable: "warn", off: "off" };
+const STATE_CLASS = { ready: "ready", model_missing: "warn", ollama_unreachable: "warn", off: "off", license_not_accepted: "warn" };
 
 async function loadServices() {
   const box = $("#services");
@@ -338,6 +368,7 @@ async function loadServices() {
         <dt>${t("model")}</dt><dd>${esc(s.model)}</dd>
         <dt>${t("vram")}</dt><dd>${s.vram_in_use_gb == null ? t("vram_est", { e: s.vram_gb }) + " · " + t(s.loaded ? "loaded" : "not_loaded") : t("vram_val", { e: s.vram_gb, u: s.vram_in_use_gb })}</dd>
         <dt>${t("license")}</dt><dd>${s.license_url ? `<a href="${esc(s.license_url)}" target="_blank" rel="noopener">${esc(s.license)}</a>` : esc(s.license)}</dd>
+        ${s.use_restrictions ? `<dt>${t("use")}</dt><dd>${esc(s.use_restrictions)}</dd>` : ""}
         <dt>${t("profile")}</dt><dd>${esc(s.profile)}</dd>
         <dt>${t("last_test")}</dt><dd>${test}</dd></dl>` : ""}
       ${s.state !== "off" ? `<div><button class="btn ghost small" data-test="${esc(s.name)}" type="button">${t("run_test")}</button></div><ul class="checks"></ul>` : ""}
@@ -613,6 +644,132 @@ async function loadImages() {
   } catch { /* the status bar shows it */ }
 }
 
+// -------------------------------------------------------------------------------- handwriting
+
+const hwDrop = $("#hw-drop"), hwFile = $("#hw-file");
+["dragenter", "dragover"].forEach((ev) => hwDrop.addEventListener(ev, (e) => { e.preventDefault(); hwDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => hwDrop.addEventListener(ev, () => hwDrop.classList.remove("over")));
+hwDrop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) { hwFile.files = e.dataTransfer.files; hwShowFile(); } });
+hwFile.addEventListener("change", hwShowFile);
+function hwShowFile() { const f = hwFile.files[0]; if (f) $("#hw-name").textContent = `${f.name} · ${(f.size / 2 ** 20).toFixed(1)} MB`; }
+let lastHw = "";
+
+$("#hw-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = hwFile.files[0];
+  if (!f) return;
+  const go = $("#hw-go"), st = $("#hw-state"), bar = $("#hw-bar");
+  go.disabled = true; $("#hw-out").hidden = true; st.textContent = t("img_working");
+  const fd = new FormData();
+  fd.append("file", f);
+  const exp = $("#hw-expect").value.trim();
+  if (exp) fd.append("expect", exp);
+  try {
+    const job = await apiJSON("/v1/handwriting", { method: "POST", body: fd });
+    await follow(job.id, (type, data) => {
+      if (type === "unload") st.textContent = t("unloading", { m: data.model || data.worker });
+      else if (type === "progress") {
+        st.textContent = data.message || t("img_working");
+        bar.hidden = !data.total;
+        if (data.total) $("#hw-bar i").style.width = `${(100 * data.done) / data.total}%`;
+      } else if (type === "error") st.textContent = `${t("error")}: ${data}`;
+      else if (type === "result") {
+        st.textContent = ""; bar.hidden = true; lastHw = data.text;
+        $("#hw-text").textContent = data.empty ? t("hw_empty") : data.text;
+        $("#hw-meta").textContent = t("hw_meta", { model: data.model, s: data.secs });
+        const sc = $("#hw-score");
+        sc.hidden = data.score === undefined;
+        if (data.score !== undefined) {
+          sc.textContent = t(data.matches ? "hw_match" : "hw_nomatch", { s: data.score.toFixed(2) });
+          sc.className = `notice ${data.matches ? "ok" : "bad"}`;
+        }
+        $("#hw-out").hidden = false;
+      }
+    });
+  } catch (err) { st.textContent = `${t("error")}: ${err.message}`; }
+  go.disabled = false;
+});
+$("#hw-copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(lastHw); $("#hw-copy").textContent = t("copied"); } catch { /* no clipboard */ }
+  setTimeout(() => { $("#hw-copy").textContent = t("copy"); }, 1500);
+});
+$("#hw-dl").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lastHw], { type: "text/markdown" }));
+  a.download = "handwriting.md"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+async function loadHandwriting() {
+  try {
+    const { services } = await apiJSON("/v1/services");
+    const s = services.find((x) => x.name === "handwriting");
+    $("#hw-off").hidden = !!s && s.state !== "off";
+    $("#hw-go").disabled = !s || s.state === "off";
+  } catch { /* the status bar shows it */ }
+}
+
+// -------------------------------------------------------------------------------------- voice
+
+let voUrl = null;
+async function loadVoice() {
+  try {
+    const { services } = await apiJSON("/v1/services");
+    const s = services.find((x) => x.name === "voice");
+    const off = !s || s.state === "off", unaccepted = !!s && s.state === "license_not_accepted";
+    $("#vo-off").hidden = !off;
+    $("#vo-license").hidden = !unaccepted;
+    $("#vo-go").disabled = off || unaccepted;
+    if (off || unaccepted) return;
+    const v = await apiJSON("/v1/voices");
+    const sel = $("#vo-voice"), cur = sel.value;
+    sel.innerHTML = v.voices.map((n) => `<option${n === (cur || v.default) ? " selected" : ""}>${esc(n)}</option>`).join("");
+  } catch { /* the status bar shows it */ }
+}
+
+$("#vo-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = { text: $("#vo-text").value.trim(), voice: $("#vo-voice").value, language: $("#vo-lang").value,
+    format: $("#vo-format").value, verify: $("#vo-verify").checked };
+  if (!body.text) return;
+  const go = $("#vo-go"), st = $("#vo-state"), bar = $("#vo-bar");
+  go.disabled = true; $("#vo-out").hidden = true; st.textContent = t("img_working");
+  try {
+    const job = await apiJSON("/v1/speak", { method: "POST", json: body });
+    await follow(job.id, (type, data) => {
+      if (type === "unload") st.textContent = t("unloading", { m: data.model || data.worker });
+      else if (type === "progress") {
+        st.textContent = data.total ? t("vo_working", { d: data.done + 1, t: data.total }) : (data.message || "");
+        bar.hidden = !data.total;
+        if (data.total) $("#vo-bar i").style.width = `${(100 * data.done) / data.total}%`;
+      } else if (type === "error") st.textContent = `${t("error")}: ${data}`;
+      else if (type === "result") { st.textContent = ""; bar.hidden = true; voShow(data, job.id); }
+    });
+  } catch (err) { st.textContent = `${t("error")}: ${err.message}`; }
+  go.disabled = false;
+});
+
+async function voShow(r, id) {
+  const res = await api(r.file);
+  if (voUrl) URL.revokeObjectURL(voUrl);
+  voUrl = URL.createObjectURL(await res.blob());
+  $("#vo-audio").src = voUrl;
+  $("#vo-dl").href = voUrl;
+  $("#vo-dl").download = `${id}.${r.format}`;
+  $("#vo-meta").textContent = t("vo_meta", { dur: r.duration, n: r.pieces, voice: r.voice, s: r.secs });
+  const v = r.verify, box = $("#vo-check");
+  box.hidden = false;
+  if (v.checked && !v.below.length) {
+    box.className = "notice ok";
+    box.textContent = t("vo_checked", { s: v.min_score.toFixed(2), r: v.retried ? t("vo_redone", { n: v.retried }) : "" });
+  } else if (v.checked) {
+    box.className = "notice bad"; box.textContent = t("vo_below", { p: v.below.join(" · ") });
+  } else if (v.note) {
+    box.className = "notice"; box.textContent = t("vo_unchecked", { n: v.note });
+  } else box.hidden = true;
+  $("#vo-out").hidden = false;
+}
+
 // --------------------------------------------------------------------------------- tabs, i18n
 
 function showTab(name) {
@@ -623,6 +780,8 @@ function showTab(name) {
   if (name === "documents") loadDocuments();
   if (name === "transcribe") loadTranscribe();
   if (name === "images") { imgShowMode(); loadImages(); }
+  if (name === "handwriting") loadHandwriting();
+  if (name === "voice") loadVoice();
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 

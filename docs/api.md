@@ -133,6 +133,17 @@ curl -s -X POST 'http://localhost:8090/v1/images/cutout?wait=true' -F file=@phot
 
 Options and limits: [Images](services/images.md).
 
+## Handwriting and voice
+
+```bash
+curl -s -X POST 'http://localhost:8090/v1/handwriting?wait=true' -F file=@page.jpg
+curl -s http://localhost:8090/v1/voices
+curl -s -X POST 'http://localhost:8090/v1/speak?wait=true' -H 'Content-Type: application/json' \
+  -d '{"text": "Hello, and welcome.", "format": "mp3"}'      # non-commercial use only: see Voice
+```
+
+[Handwriting](services/handwriting.md) · [Voice](services/voice.md) (`403` until its license is accepted).
+
 ## Status, services, tests
 
 | Call | What it tells you |
@@ -148,6 +159,7 @@ Options and limits: [Images](services/images.md).
 | Code | When |
 |---|---|
 | `401` | missing or wrong API key |
+| `403` | the voice: its non-commercial license is not accepted (`XTTS_ACCEPT_CPML`) |
 | `409` | the index is inconsistent: rebuild it |
 | `413` | request body over `MAX_UPLOAD_MB` |
 | `415` | a file type the service does not read |

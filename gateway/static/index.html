@@ -44,6 +44,8 @@
   <button role="tab" class="tab" data-tab="documents" aria-selected="false" data-i18n="tab_documents">Documents</button>
   <button role="tab" class="tab" data-tab="transcribe" aria-selected="false" data-i18n="tab_transcribe">Transcribe</button>
   <button role="tab" class="tab" data-tab="images" aria-selected="false" data-i18n="tab_images">Images</button>
+  <button role="tab" class="tab" data-tab="handwriting" aria-selected="false" data-i18n="tab_handwriting">Handwriting</button>
+  <button role="tab" class="tab" data-tab="voice" aria-selected="false" data-i18n="tab_voice">Voice</button>
   <button role="tab" class="tab" data-tab="services" aria-selected="false" data-i18n="tab_services">Services</button>
 </nav>
 
@@ -180,6 +182,57 @@
       <div class="canvas"><img id="img-view" alt=""></div>
     </article>
     <p class="hint" id="img-license" data-i18n="img_license">Pictures are made with SDXL (CreativeML OpenRAIL++-M): it allows commercial use but forbids uses that break the law or harm people.</p>
+  </section>
+
+  <section class="panel" id="panel-handwriting" role="tabpanel" hidden>
+    <p class="notice" id="hw-off" hidden data-i18n="hw_off">The handwriting service is off: start the stack with docker compose --profile handwriting up -d.</p>
+    <form id="hw-form">
+      <label class="drop" id="hw-drop">
+        <input type="file" id="hw-file" required accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff">
+        <span class="drop-title" data-i18n="hw_drop">Drop a photo of a handwritten page here, or choose one</span>
+        <span class="sub" id="hw-name">PNG, JPEG, WebP, BMP, TIFF</span>
+      </label>
+      <details class="expect"><summary data-i18n="hw_expect_sum">Check it reads a given text</summary>
+        <textarea id="hw-expect" rows="2" maxlength="20000" data-i18n-ph="hw_expect_ph" placeholder="The text the page says: the result shows how close the reading is."></textarea></details>
+      <div class="options"><button class="btn primary" type="submit" id="hw-go" data-i18n="hw_go">Read</button></div>
+    </form>
+    <div class="bar wide" id="hw-bar" hidden><i></i></div>
+    <div class="sub" id="hw-state"></div>
+    <article class="answer" id="hw-out" hidden>
+      <div class="row"><div class="meta" id="hw-meta"></div>
+        <div class="tools"><button class="btn ghost small" id="hw-copy" type="button" data-i18n="copy">Copy</button>
+          <button class="btn ghost small" id="hw-dl" type="button">.md</button></div></div>
+      <div class="notice" id="hw-score" hidden></div>
+      <pre class="transcript" id="hw-text"></pre>
+    </article>
+    <p class="hint" data-i18n="hw_hint">The photo is read by a vision model on this machine and deleted when the job ends.</p>
+  </section>
+
+  <section class="panel" id="panel-voice" role="tabpanel" hidden>
+    <p class="notice" id="vo-off" hidden data-i18n="vo_off">The voice service is off: start the stack with docker compose --profile voice up -d.</p>
+    <p class="notice bad" id="vo-license" hidden data-i18n="vo_license_needed">XTTS-v2 is for NON-COMMERCIAL use only (Coqui Public Model License). The voice stays off until you accept the license: XTTS_ACCEPT_CPML=yes in .env, then restart the stack.</p>
+    <form id="vo-form">
+      <textarea id="vo-text" rows="4" maxlength="20000" required data-i18n-ph="vo_ph" placeholder="The text to say. Long texts are fine: they are read in short pieces."></textarea>
+      <div class="options">
+        <label><span data-i18n="vo_voice">Voice</span><select id="vo-voice"><option>Claribel Dervla</option></select></label>
+        <label><span data-i18n="tr_lang">Language</span><select id="vo-lang">
+          <option value="en">English</option><option value="it">Italiano</option><option value="fr">Français</option>
+          <option value="de">Deutsch</option><option value="es">Español</option><option value="pt">Português</option></select></label>
+        <label><span data-i18n="vo_format">Format</span><select id="vo-format">
+          <option value="wav">WAV</option><option value="mp3">MP3</option><option value="ogg">OGG</option></select></label>
+        <label class="check"><input type="checkbox" id="vo-verify" checked><span data-i18n="vo_verify">Listen to it again</span></label>
+        <button class="btn primary" type="submit" id="vo-go" data-i18n="vo_go">Speak</button>
+      </div>
+    </form>
+    <div class="bar wide" id="vo-bar" hidden><i></i></div>
+    <div class="sub" id="vo-state"></div>
+    <article class="answer" id="vo-out" hidden>
+      <div class="row"><div class="meta" id="vo-meta"></div>
+        <div class="tools"><a class="btn ghost small" id="vo-dl" download data-i18n="vo_download">Download</a></div></div>
+      <div class="notice" id="vo-check" hidden></div>
+      <audio id="vo-audio" controls></audio>
+    </article>
+    <p class="hint" data-i18n="vo_license">Made with XTTS-v2: non-commercial use only, of the model and of the audio it makes.</p>
   </section>
 
   <section class="panel" id="panel-services" role="tabpanel" hidden>

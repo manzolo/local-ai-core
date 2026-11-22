@@ -19,6 +19,10 @@ flowchart LR
         G -->|"/attribute"| SP
         IM["image (profile image)<br/>adapter → ComfyUI on 127.0.0.1"]
         G -->|"/generate /upscale /cutout"| IM
+        RD["reader (profile handwriting)"] -->|"vision chat"| O
+        VO["voice (profile voice)<br/>XTTS-v2"] -->|"listen again"| TR
+        G -->|"/read"| RD
+        G -->|"/speak"| VO
         D -.->|"Markdown into the library"| L[("library")]
         L --> S
         O[("ollama<br/>bge-m3 · qwen3.5:9b")]
@@ -81,6 +85,7 @@ loaded, VRAM in use, last test).
 | `documents-models` | Docling's models |
 | `transcriber-models`, `speakers-models` | the Whisper and ECAPA models |
 | `image-models` | SDXL, the Lightning LoRA, RealESRGAN and BiRefNet |
+| `voice-models` | XTTS-v2 |
 | `gateway-data/results` | the PNG of each image job, deleted with the job |
 | `NOTES_DIR` | your notes, mounted read-only, never written |
 

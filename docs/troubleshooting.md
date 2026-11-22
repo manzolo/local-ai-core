@@ -47,6 +47,17 @@ On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in 
 It runs in the `docs` profile: `docker compose --profile docs up -d` (or `COMPOSE_PROFILES=docs` in
 `.env`). The first build downloads PyTorch with CUDA: about 7 GB.
 
+## The voice says its license is not accepted
+
+That is on purpose: XTTS-v2 is for non-commercial use only, and only you can accept that. Read
+<https://huggingface.co/coqui/XTTS-v2/blob/main/LICENSE.txt>, write `XTTS_ACCEPT_CPML=yes` in `.env`, then `docker compose --profile voice
+up -d`.
+
+## A voice piece still does not say its text
+
+The result lists it in `verify.below` after three tries. Rewrite it more plainly (spell out a strange name,
+split a long sentence), or try another voice.
+
 ## An image job says a model's sha256 does not match
 
 The download was cut or altered: the file was discarded. Run the job again; if it keeps failing, the

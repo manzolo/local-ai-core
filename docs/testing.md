@@ -42,6 +42,11 @@ upscaled and cut out (the subject opaque, the background transparent), and the s
 not inverted must fail. The CPU tests use a fake ComfyUI that runs the workflows with Pillow following the
 real nodes' rules. See [Images](services/images.md#built-in-test).
 
+For handwriting, an invented note in a handwriting font is read, a blank page is reported empty. For the
+voice, the built-in voices, numbers spelled out, a known sentence with a plausible length, listened to
+again by the transcriber, and a text with no words refused. See [Handwriting](services/handwriting.md)
+and [Voice](services/voice.md).
+
 ## The mutations
 
 `scripts/mutations.sh` changes one line at a time, runs the tests and puts the line back:
@@ -72,6 +77,14 @@ real nodes' rules. See [Images](services/images.md#built-in-test).
 | a full GPU does not make the other workers free their VRAM | the shared-GPU test |
 | a worker restarting to free VRAM is reported as down | the restart test |
 | unloading keeps the CUDA context | the restart test |
+| ComfyUI keeps SDXL in memory when the next job is different | the free test |
+| a service test does not make room on the GPU | the test-room test |
+| a blank page counts as read | the blank-page test |
+| the voice runs without its license being accepted | the license test |
+| a garbled piece is not redone | the retry test |
+| XTTS gets the final full stop | the pieces test |
+| years are read as plain numbers | the spelling test |
+| the transcriber is unloaded right when the voice needs it | the shared-GPU test |
 
 ## Running the CPU tests locally
 
