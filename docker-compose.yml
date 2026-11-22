@@ -4,6 +4,7 @@
 #   docker compose --profile docs up -d     + documents → Markdown (Docling, ~7 GB image, ~3 GB VRAM)
 #   --profile transcribe                    + speech → text and subtitles (faster-whisper, ~3.4 GB, ~5 GB VRAM)
 #   --profile speakers                      + who said what (SpeechBrain, ~6.6 GB, ~1 GB VRAM)
+#   --profile image                         + images: generate, upscale, cut out (ComfyUI, ~10 GB, ~8 GB VRAM)
 #
 # Standalone: this file brings its own Ollama and never touches the shared `local-ai-net` network.
 # To use the Ollama of the local-ai-lab family instead, add the override:
@@ -30,7 +31,7 @@ services:
       AUTO_INDEX: ${AUTO_INDEX:-true}
       WORKERS: >-
         search=http://search:8000 documents=http://documents:8000
-        transcriber=http://transcriber:8000 speakers=http://speakers:8000
+        transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000
     volumes:
       - gateway-data:/data
       - uploads:/data/uploads       # files being converted: deleted when their job ends
@@ -129,6 +130,28 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
 
+  image:
+    # text → image, upscale, cut out, with ComfyUI (GPL-3.0, run unmodified). Off unless `--profile image`.
+    profiles: ["image"]
+    build:
+      context: .
+      dockerfile: services/image/Dockerfile
+    image: local-ai-core/image:0.1.0
+    environment:
+      IDLE_UNLOAD_MINUTES: ${IDLE_UNLOAD_MINUTES:-10}
+      IMAGE_CHECKPOINT: ${IMAGE_CHECKPOINT:-}
+    volumes:
+      - uploads:/data/uploads
+      - image-models:/models        # SDXL, Lightning, RealESRGAN, BiRefNet: ~7.8 GB, downloaded on first use
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:0.40.16@sha256:910d0d8107b538fb0894e63163eb195de0cc7aefcbc666dc62d3b18f71124592
     # no published port and no fixed container name: it never clashes with an Ollama already on the host
@@ -151,4 +174,5 @@ volumes:
   documents-models:
   transcriber-models:
   speakers-models:
+  image-models:
   ollama:

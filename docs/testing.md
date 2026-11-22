@@ -37,6 +37,11 @@ For speech, on synthetic sentences spoken by two public-domain voices: a known s
 an error; a dialogue of two alternating voices gives two speakers in the right order, one voice stays one
 speaker. See [Transcribe and speakers](services/transcribe.md#built-in-tests).
 
+For images: a fixed-seed 512×512 picture, a checkpoint that does not exist refused, a synthetic photo
+upscaled and cut out (the subject opaque, the background transparent), and the same cut-out with the mask
+not inverted must fail. The CPU tests use a fake ComfyUI that runs the workflows with Pillow following the
+real nodes' rules. See [Images](services/images.md#built-in-test).
+
 ## The mutations
 
 `scripts/mutations.sh` changes one line at a time, runs the tests and puts the line back:
@@ -60,6 +65,13 @@ speaker. See [Transcribe and speakers](services/transcribe.md#built-in-tests).
 | every voice is put into one speaker | the dialogue test |
 | a transcript that says something else still matches | the expected-text test |
 | `speakers=true` is silently ignored | the speakers tests |
+| the cut-out mask is not inverted | the cut-out test |
+| upscale ×2 stays ×4 | the upscale test |
+| a downloaded model is used without checking its sha256 | the tampered-download test |
+| result images outlive their job | the clean-up test |
+| a full GPU does not make the other workers free their VRAM | the shared-GPU test |
+| a worker restarting to free VRAM is reported as down | the restart test |
+| unloading keeps the CUDA context | the restart test |
 
 ## Running the CPU tests locally
 

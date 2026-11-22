@@ -25,6 +25,14 @@ const T = {
     testing: "Testing…", profile: "Profile", indexing: "Indexing… {d}/{t}", indexed: "Index: {f} files, {c} chunks ({ch} re-read)",
     error: "Error",
     vram_est: "~{e} GB estimated", loaded: "models loaded", not_loaded: "models not loaded",
+    tab_images: "Images", img_off: "The image service is off: start the stack with docker compose --profile image up -d.",
+    img_generate: "Generate", img_upscale: "Upscale", img_cutout: "Cut out",
+    img_prompt_ph: "Describe the picture: subject, style, light…", img_size: "Size", img_seed: "Seed",
+    img_drop: "Drop a photo here, or choose one", img_scale: "Scale", img_bg: "Background",
+    img_transparent: "transparent", img_white: "white", img_black: "black", img_go: "Create",
+    img_download: "Download PNG", img_working: "Working…", img_meta: "{w} × {h} · {s} s",
+    img_seed_meta: " · seed {seed}", img_license: "Pictures are made with SDXL (CreativeML OpenRAIL++-M): it allows commercial use but forbids uses that break the law or harm people.",
+    img_need_file: "Choose a photo first.", img_need_prompt: "Describe the picture first.",
     tab_transcribe: "Transcribe", tr_off: "The transcription service is off: start the stack with docker compose --profile transcribe up -d.",
     tr_drop: "Drop an audio or video file here, or choose one", tr_types: "WAV, MP3, OGG, M4A, FLAC, MP4, MKV, WebM…",
     tr_lang: "Language", tr_auto: "detect", tr_speakers: "Who said what", tr_go: "Transcribe",
@@ -64,6 +72,14 @@ const T = {
     testing: "Collaudo…", profile: "Profilo", indexing: "Indicizzo… {d}/{t}", indexed: "Indice: {f} file, {c} pezzi ({ch} riletti)",
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
+    tab_images: "Immagini", img_off: "Il servizio immagini è spento: avvia lo stack con docker compose --profile image up -d.",
+    img_generate: "Genera", img_upscale: "Ingrandisci", img_cutout: "Scontorna",
+    img_prompt_ph: "Descrivi l'immagine: soggetto, stile, luce…", img_size: "Misura", img_seed: "Seme",
+    img_drop: "Trascina qui una foto, o sceglila", img_scale: "Scala", img_bg: "Sfondo",
+    img_transparent: "trasparente", img_white: "bianco", img_black: "nero", img_go: "Crea",
+    img_download: "Scarica PNG", img_working: "Lavoro…", img_meta: "{w} × {h} · {s} s",
+    img_seed_meta: " · seme {seed}", img_license: "Le immagini si fanno con SDXL (CreativeML OpenRAIL++-M): permette l'uso commerciale ma vieta gli usi illegali o che fanno del male alle persone.",
+    img_need_file: "Prima scegli una foto.", img_need_prompt: "Prima descrivi l'immagine.",
     tab_transcribe: "Trascrivi", tr_off: "Il servizio di trascrizione è spento: avvia lo stack con docker compose --profile transcribe up -d.",
     tr_drop: "Trascina qui un audio o un video, o sceglilo", tr_types: "WAV, MP3, OGG, M4A, FLAC, MP4, MKV, WebM…",
     tr_lang: "Lingua", tr_auto: "riconosci", tr_speakers: "Chi ha detto cosa", tr_go: "Trascrivi",
@@ -522,6 +538,81 @@ async function loadTranscribe() {
   } catch { /* the status bar shows it */ }
 }
 
+// ------------------------------------------------------------------------------------- images
+
+const imgMode = () => document.querySelector("input[name=img-mode]:checked").value;
+function imgShowMode() {
+  const m = imgMode();
+  document.querySelector(".img-gen").hidden = m !== "generate";
+  $("#img-drop").hidden = m === "generate";
+  document.querySelector(".img-up").hidden = m !== "upscale";
+  document.querySelector(".img-cut").hidden = m !== "cutout";
+}
+document.querySelectorAll("input[name=img-mode]").forEach((r) => r.addEventListener("change", imgShowMode));
+const imgDrop = $("#img-drop"), imgFile = $("#img-file");
+["dragenter", "dragover"].forEach((ev) => imgDrop.addEventListener(ev, (e) => { e.preventDefault(); imgDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => imgDrop.addEventListener(ev, () => imgDrop.classList.remove("over")));
+imgDrop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) { imgFile.files = e.dataTransfer.files; imgShowFile(); } });
+imgFile.addEventListener("change", imgShowFile);
+function imgShowFile() { const f = imgFile.files[0]; if (f) $("#img-name").textContent = `${f.name} · ${(f.size / 2 ** 20).toFixed(1)} MB`; }
+
+let imgUrl = null;
+$("#img-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const m = imgMode(), st = $("#img-state"), bar = $("#img-bar"), go = $("#img-go");
+  let req;
+  if (m === "generate") {
+    const prompt = $("#img-prompt").value.trim();
+    if (!prompt) { st.textContent = t("img_need_prompt"); return; }
+    const [w, h] = $("#img-size").value.split("x").map(Number);
+    const body = { prompt, width: w, height: h };
+    if ($("#img-seed").value !== "") body.seed = Number($("#img-seed").value);
+    req = ["/v1/images/generate", { method: "POST", json: body }];
+  } else {
+    const f = imgFile.files[0];
+    if (!f) { st.textContent = t("img_need_file"); return; }
+    const fd = new FormData();
+    fd.append("file", f);
+    if (m === "upscale") fd.append("scale", $("#img-scale").value); else fd.append("background", $("#img-bg").value);
+    req = [`/v1/images/${m}`, { method: "POST", body: fd }];
+  }
+  go.disabled = true; st.textContent = t("img_working"); bar.hidden = true;
+  try {
+    const job = await apiJSON(...req);
+    await follow(job.id, (type, data) => {
+      if (type === "unload") st.textContent = t("unloading", { m: data.model || data.worker });
+      else if (type === "progress") {
+        st.textContent = data.message || t("img_working");
+        bar.hidden = !data.total;
+        if (data.total) $("#img-bar i").style.width = `${(100 * data.done) / data.total}%`;
+      } else if (type === "error") st.textContent = `${t("error")}: ${data}`;
+      else if (type === "result") { st.textContent = ""; bar.hidden = true; imgShow(data, job.id); }
+    });
+  } catch (err) { st.textContent = `${t("error")}: ${err.message}`; }
+  go.disabled = false;
+});
+
+async function imgShow(r, id) {
+  // fetched with the API key, then shown from memory: an <img src> could not send the header
+  const res = await api(r.file);
+  if (imgUrl) URL.revokeObjectURL(imgUrl);
+  imgUrl = URL.createObjectURL(await res.blob());
+  $("#img-view").src = imgUrl;
+  $("#img-dl").href = imgUrl;
+  $("#img-dl").download = `${id}.png`;
+  $("#img-meta").textContent = t("img_meta", { w: r.width, h: r.height, s: r.secs }) + (r.seed !== undefined ? t("img_seed_meta", { seed: r.seed }) : "");
+  $("#img-out").hidden = false;
+}
+
+async function loadImages() {
+  try {
+    const { services } = await apiJSON("/v1/services");
+    const s = services.find((x) => x.name === "images");
+    $("#img-off").hidden = !!s && s.state !== "off";
+    $("#img-go").disabled = !s || s.state === "off";
+  } catch { /* the status bar shows it */ }
+}
+
 // --------------------------------------------------------------------------------- tabs, i18n
 
 function showTab(name) {
@@ -531,6 +622,7 @@ function showTab(name) {
   if (name === "services") loadServices();
   if (name === "documents") loadDocuments();
   if (name === "transcribe") loadTranscribe();
+  if (name === "images") { imgShowMode(); loadImages(); }
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 

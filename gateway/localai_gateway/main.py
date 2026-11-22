@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import shutil
 import time
 import uuid
@@ -47,7 +48,7 @@ class Settings:
         self.static_dir = env.get("STATIC_DIR", os.path.join(os.path.dirname(HERE), "static"))
         self.workers = {}
         default_workers = ("search=http://search:8000 documents=http://documents:8000 "
-                           "transcriber=http://transcriber:8000 speakers=http://speakers:8000")
+                           "transcriber=http://transcriber:8000 speakers=http://speakers:8000 image=http://image:8000")
         for item in env.get("WORKERS", default_workers).split():
             name, _, url = item.partition("=")
             if name and url:
@@ -118,6 +119,9 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
+        # result files belong to jobs, and jobs live in memory: a restart starts clean
+        shutil.rmtree(results_dir(settings), ignore_errors=True)
+        os.makedirs(results_dir(settings), exist_ok=True)
         app.state.boot_task = asyncio.create_task(bootstrap(app))
         yield
         app.state.boot_task.cancel()
@@ -129,7 +133,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                     "answers that cite them, more services as profiles. Long work runs as jobs.",
     )
     app.state.settings = settings
-    app.state.jobs = JobStore()
+    app.state.jobs = JobStore(on_evict=drop_file)
     app.state.ollama = OllamaClient(settings.ollama_host, transport=ollama_transport)
     app.state.workers = {n: Worker(n, u, transport=worker_transports.get(n)) for n, u in settings.workers.items()}
     app.state.boot = {"phase": "starting", "detail": "", "pull": None, "error": None}
@@ -244,6 +248,8 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                     checks.append({k: ev[k] for k in ("name", "ok", "detail")})
                     await job.emit("check", checks[-1])
                     await job.set_progress(len(checks), None, ev["name"])
+                elif ev["type"] == "progress":  # e.g. models downloading before the first check
+                    await job.set_progress(ev.get("done"), ev.get("total"), ev.get("message"))
                 elif ev["type"] == "result":
                     ok = ev["ok"]
             return {"ok": ok, "checks": checks}
@@ -282,6 +288,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
         async def run(job):
             sources, result = [], None
+            await ensure_vram(app, job, 7, keep_model=req.model or settings.llm_model)
             async for ev in w.stream("/ask", body):
                 if ev["type"] == "sources":
                     sources = ev["sources"]
@@ -319,7 +326,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
         async def run(job):
             try:
                 await job.set_progress(0, None, "converting")
-                await ensure_vram(app, job, 3)
+                await ensure_vram(app, job, 3, exclude=w.name)
                 out = os.path.join(job_dir, "out.md")
                 try:
                     stats = await w.post("/convert", {"path": src, "out": out, "ocr": ocr, "lang": lang,
@@ -366,7 +373,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
         async def run(job):
             try:
-                await ensure_vram(app, job, 5)
+                await ensure_vram(app, job, 5, exclude=w.name)
                 res = None
                 body = {"path": src, "language": language, "expect": expect}
                 async for ev in w.stream("/transcribe", body):
@@ -380,7 +387,7 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                 n_speakers = None
                 if sw and segs:
                     await job.set_progress(res["duration"], res["duration"], "speakers")
-                    await ensure_vram(app, job, 1)
+                    await ensure_vram(app, job, 1, exclude=sw.name)
                     try:
                         att = await sw.post("/attribute", {"path": src, "segments": res["segments"],
                                                            "n": num_speakers}, timeout=1800)
@@ -400,6 +407,68 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
 
         job = app.state.jobs.submit("transcribe", {"filename": name, "speakers": speakers}, run)
         return await maybe_wait(job, wait)
+
+    async def image_job(kind, path, body, params, src_dir=None):
+        w = await worker_for("images")
+        job_dir = src_dir or os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
+        os.makedirs(job_dir, exist_ok=True)
+
+        async def run(job):
+            try:
+                await ensure_vram(app, job, 8, exclude=w.name)
+                out, res = os.path.join(job_dir, "out.png"), None
+                async for ev in w.stream(path, {**body, "out": out}):
+                    if ev["type"] == "progress":
+                        await job.set_progress(ev.get("done"), ev.get("total"), ev.get("message"))
+                    elif ev["type"] == "result":
+                        res = {k: v for k, v in ev.items() if k != "type"}
+                if res is None:
+                    raise JobFailed("the image worker ended without a result")
+                dest = os.path.join(results_dir(settings), f"{job.id}.png")
+                shutil.move(out, dest)
+                job.file = dest
+                return {**res, "file": f"/v1/jobs/{job.id}/file"}
+            finally:
+                shutil.rmtree(job_dir, ignore_errors=True)
+
+        return app.state.jobs.submit(kind, params, run)
+
+    @app.post("/v1/images/generate", dependencies=[v1], tags=["images"], status_code=202,
+              summary="Text → image with SDXL and the Lightning LoRA, 4 steps (job; the PNG at /v1/jobs/{id}/file)")
+    async def images_generate(req: GenerateIn, wait: bool = False):
+        seed = req.seed if req.seed is not None else secrets.randbelow(2**32)
+        body = {**req.model_dump(exclude={"seed"}), "seed": seed}
+        job = await image_job("image", "/generate", body, {"prompt": req.prompt, "seed": seed})
+        return await maybe_wait(job, wait)
+
+    @app.post("/v1/images/upscale", dependencies=[v1], tags=["images"], status_code=202,
+              summary="Photo → ×2 or ×4 with RealESRGAN (job; the PNG at /v1/jobs/{id}/file)")
+    async def images_upscale(file: UploadFile = File(description="the photo"),
+                             scale: int = Form(4, ge=2, le=4, multiple_of=2, description="2 or 4"),
+                             wait: bool = False):
+        job_dir, src = await save_image_upload(settings, file)
+        job = await image_job("upscale", "/upscale", {"path": src, "scale": scale},
+                              {"filename": os.path.basename(src), "scale": scale}, job_dir)
+        return await maybe_wait(job, wait)
+
+    @app.post("/v1/images/cutout", dependencies=[v1], tags=["images"], status_code=202,
+              summary="Photo → subject on a transparent (or solid) background with BiRefNet (job; PNG)")
+    async def images_cutout(file: UploadFile = File(description="the photo"),
+                            background: str = Form("", pattern=r"^(|white|black|#[0-9a-fA-F]{6})$",
+                                                   description="empty = transparent; white, black or #rrggbb"),
+                            wait: bool = False):
+        job_dir, src = await save_image_upload(settings, file)
+        job = await image_job("cutout", "/cutout", {"path": src, "background": background},
+                              {"filename": os.path.basename(src), "background": background}, job_dir)
+        return await maybe_wait(job, wait)
+
+    @app.get("/v1/jobs/{job_id}/file", dependencies=[v1], tags=["jobs"], summary="The file a job produced (PNG)",
+             response_class=FileResponse)
+    async def job_file(job_id: str):
+        job = app.state.jobs.get(job_id)
+        if not job or not job.file or not os.path.isfile(job.file):
+            raise HTTPException(404, "this job has no file (or it is gone: files live as long as their job)")
+        return FileResponse(job.file, media_type="image/png", filename=f"{job.kind}-{job.id}.png")
 
     @app.get("/v1/library", dependencies=[v1], tags=["documents"], summary="Documents added to the library")
     async def library_list():
@@ -485,6 +554,16 @@ class AskIn(BaseModel):
     model: str | None = Field(None, description="Ollama model (default OLLAMA_MODEL)")
 
 
+class GenerateIn(BaseModel):
+    prompt: str = Field(min_length=1, max_length=2000, examples=["a lighthouse on a cliff at sunset, oil painting"])
+    negative: str = Field("blurry, deformed, low quality, text, watermark", max_length=2000,
+                          description="what to avoid")
+    width: int = Field(1024, ge=512, le=1536, multiple_of=8)
+    height: int = Field(1024, ge=512, le=1536, multiple_of=8)
+    steps: int = Field(4, ge=1, le=8, description="the Lightning LoRA is made for 4")
+    seed: int | None = Field(None, ge=0, le=2**32 - 1, description="the same seed gives the same picture")
+
+
 class Hit(BaseModel):
     score: float
     file: str
@@ -521,6 +600,27 @@ DOC_TYPES = {".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".png", ".jpg",
 LIB_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.md$")
 
 
+IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
+
+
+def results_dir(settings):
+    return os.path.join(settings.data_dir, "results")
+
+
+def drop_file(job):
+    if job.file:
+        with contextlib.suppress(OSError):
+            os.remove(job.file)
+
+
+async def save_image_upload(settings, file):
+    name = safe_name(file.filename or "photo.png")
+    ext = os.path.splitext(name)[1].lower()
+    if ext not in IMAGE_TYPES:
+        raise HTTPException(415, f"unsupported file type {ext or '(none)'}: one of {', '.join(sorted(IMAGE_TYPES))}")
+    return await save_upload(settings, file, name)
+
+
 async def save_upload(settings, file, name):
     """The upload into its own folder of the uploads volume: (folder, path). The job deletes the folder."""
     job_dir = os.path.join(settings.uploads_dir, uuid.uuid4().hex[:12])
@@ -540,24 +640,36 @@ def safe_name(filename):
     return base[:150]
 
 
-async def ensure_vram(app, job, needed_gb):
-    """Before a GPU worker runs: if the GPU has less free VRAM than it needs, ask Ollama to free its models
-    now instead of waiting for their idle timeout. Without nvidia-smi there is nothing to measure."""
+async def ensure_vram(app, job, needed_gb, exclude=None, keep_model=None):
+    """Before GPU work: if the GPU has less free VRAM than the job needs, free what others hold now instead of
+    waiting for their idle timeout: Ollama's models (except keep_model, the one the job is about to use),
+    then the other GPU workers. Jobs run one at a time, so nothing is taken from a running job.
+    Without nvidia-smi there is nothing to measure."""
     gpu = await gpu_status()
     if not gpu:
         return
     free = gpu["vram_total_gb"] - gpu["vram_used_gb"]
-    if free >= needed_gb:
-        return
     try:
         loaded = await app.state.ollama.loaded()
     except Exception:  # noqa: BLE001
+        loaded = []
+    if keep_model and model_key(keep_model) in {model_key(m["name"]) for m in loaded}:
+        return  # the model is already in memory: nothing to make room for
+    if free >= needed_gb:
         return
     for m in loaded:
+        if keep_model and model_key(m["name"]) == model_key(keep_model):
+            continue
         await job.emit("unload", {"model": m["name"], "vram_gb": m["vram_gb"], "free_gb": round(free, 1),
                                   "needed_gb": needed_gb})
         with contextlib.suppress(Exception):
             await app.state.ollama.unload(m["name"])
+    for w in app.state.workers.values():
+        if w.name == exclude:
+            continue
+        with contextlib.suppress(Exception):
+            if (await w.post("/unload", {}, timeout=60)).get("unloaded"):
+                await job.emit("unload", {"worker": w.name, "free_gb": round(free, 1), "needed_gb": needed_gb})
 
 
 async def run_index(w, job, rebuild=False):

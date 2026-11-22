@@ -47,6 +47,17 @@ On a GPU with less than 8 GB, use a smaller model: `OLLAMA_MODEL=qwen3.5:4b` in 
 It runs in the `docs` profile: `docker compose --profile docs up -d` (or `COMPOSE_PROFILES=docs` in
 `.env`). The first build downloads PyTorch with CUDA: about 7 GB.
 
+## An image job says a model's sha256 does not match
+
+The download was cut or altered: the file was discarded. Run the job again; if it keeps failing, the
+official file may have changed, which the project must check before using it.
+
+## A worker restarts by itself
+
+That is how a GPU worker gives back its memory when another job needs it, or after
+`IDLE_UNLOAD_MINUTES`: its container exits and Docker starts it again in a few seconds. `docker compose ps`
+shows a short uptime; nothing is lost.
+
 ## "Who said what" is greyed out
 
 It needs the `speakers` profile: `docker compose --profile transcribe --profile speakers up -d`.

@@ -43,6 +43,7 @@
   <button role="tab" class="tab" data-tab="search" aria-selected="false" data-i18n="tab_search">Search</button>
   <button role="tab" class="tab" data-tab="documents" aria-selected="false" data-i18n="tab_documents">Documents</button>
   <button role="tab" class="tab" data-tab="transcribe" aria-selected="false" data-i18n="tab_transcribe">Transcribe</button>
+  <button role="tab" class="tab" data-tab="images" aria-selected="false" data-i18n="tab_images">Images</button>
   <button role="tab" class="tab" data-tab="services" aria-selected="false" data-i18n="tab_services">Services</button>
 </nav>
 
@@ -137,6 +138,48 @@
       <div class="notice" id="tr-score" hidden></div>
       <ol class="lines" id="tr-lines"></ol>
     </article>
+  </section>
+
+  <section class="panel" id="panel-images" role="tabpanel" hidden>
+    <p class="notice" id="img-off" hidden data-i18n="img_off">The image service is off: start the stack with docker compose --profile image up -d.</p>
+    <div class="modes" role="radiogroup">
+      <label><input type="radio" name="img-mode" value="generate" checked><span data-i18n="img_generate">Generate</span></label>
+      <label><input type="radio" name="img-mode" value="upscale"><span data-i18n="img_upscale">Upscale</span></label>
+      <label><input type="radio" name="img-mode" value="cutout"><span data-i18n="img_cutout">Cut out</span></label>
+    </div>
+    <form id="img-form">
+      <div class="img-gen">
+        <textarea id="img-prompt" rows="2" maxlength="2000" data-i18n-ph="img_prompt_ph"
+          placeholder="Describe the picture: subject, style, light…"></textarea>
+        <div class="options">
+          <label><span data-i18n="img_size">Size</span><select id="img-size">
+            <option value="1024x1024">1024 × 1024</option><option value="1216x832">1216 × 832</option>
+            <option value="832x1216">832 × 1216</option><option value="512x512">512 × 512</option></select></label>
+          <label><span data-i18n="img_seed">Seed</span><input id="img-seed" type="number" min="0" placeholder="random" size="10"></label>
+        </div>
+      </div>
+      <label class="drop img-src" id="img-drop" hidden>
+        <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff">
+        <span class="drop-title" data-i18n="img_drop">Drop a photo here, or choose one</span>
+        <span class="sub" id="img-name">PNG, JPEG, WebP, BMP, TIFF</span>
+      </label>
+      <div class="options">
+        <label class="img-up" hidden><span data-i18n="img_scale">Scale</span>
+          <select id="img-scale"><option value="4">× 4</option><option value="2">× 2</option></select></label>
+        <label class="img-cut" hidden><span data-i18n="img_bg">Background</span>
+          <select id="img-bg"><option value="" data-i18n="img_transparent">transparent</option>
+            <option value="white" data-i18n="img_white">white</option><option value="black" data-i18n="img_black">black</option></select></label>
+        <button class="btn primary" type="submit" id="img-go" data-i18n="img_go">Create</button>
+      </div>
+    </form>
+    <div class="bar wide" id="img-bar" hidden><i></i></div>
+    <div class="sub" id="img-state"></div>
+    <article class="answer" id="img-out" hidden>
+      <div class="row"><div class="meta" id="img-meta"></div>
+        <div class="tools"><a class="btn ghost small" id="img-dl" download data-i18n="img_download">Download PNG</a></div></div>
+      <div class="canvas"><img id="img-view" alt=""></div>
+    </article>
+    <p class="hint" id="img-license" data-i18n="img_license">Pictures are made with SDXL (CreativeML OpenRAIL++-M): it allows commercial use but forbids uses that break the law or harm people.</p>
   </section>
 
   <section class="panel" id="panel-services" role="tabpanel" hidden>

@@ -41,5 +41,6 @@ jobs:
           test "$(docker compose -f docker-compose.yml -f docker-compose.local-ai.yml config --services | sort | xargs)" = "gateway search"
           test "$(docker compose --profile docs config --services | sort | xargs)" = "documents gateway ollama search"
           test "$(docker compose --profile transcribe --profile speakers config --services | sort | xargs)" = "gateway ollama search speakers transcriber"
+          test "$(docker compose --profile image config --services | sort | xargs)" = "gateway image ollama search"
       - name: Images build
         run: docker compose build

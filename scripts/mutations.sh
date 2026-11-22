@@ -52,4 +52,22 @@ mut services/transcriber/transcriber_worker/main.py '        result["matches"] =
     "a transcript that says something else still matches"
 mut gateway/localai_gateway/main.py '        sw = await worker_for("speakers") if speakers else None' '        sw = None' \
     "speakers=true is silently ignored"
+mut services/image/image_worker/workflows.py 'def cutout(image, model, prefix="lac-cutout", invert=True):' 'def cutout(image, model, prefix="lac-cutout", invert=False):' \
+    "the cut-out mask is not inverted"
+mut services/image/image_worker/workflows.py '    if scale == 2:' '    if False:' \
+    "upscale x2 stays x4"
+mut services/image/image_worker/models.py '            if h.hexdigest() != m.sha256:' '            if False:' \
+    "a downloaded model is used without checking its sha256"
+mut gateway/localai_gateway/jobs.py '            if self.on_evict:' '            if False:' \
+    "result images outlive their job"
+mut gateway/localai_gateway/main.py '    for w in app.state.workers.values():
+        if w.name == exclude:' '    for w in []:
+        if w.name == exclude:' \
+    "a full GPU does not make the other workers free their VRAM"
+mut gateway/localai_gateway/clients.py '            if attempt == RESTART_WAIT - 1:' '            if True:' \
+    "a worker restarting to free VRAM is reported as down"
+mut services/transcriber/transcriber_worker/main.py '    if unloaded:
+        restart_soon()' '    if False:
+        restart_soon()' \
+    "unloading keeps the CUDA context (no restart)"
 exit $rc

@@ -120,6 +120,19 @@ curl -s -X POST 'http://localhost:8090/v1/transcribe?wait=true' \
 The result has `text`, `segments` (with `speaker`), `srt` and `vtt`. Add `-F expect="…"` to score the
 transcript against the text it should say. Options: [Transcribe and speakers](services/transcribe.md).
 
+## Images
+
+Needs the `image` profile. Generate from JSON, upscale and cut out from a photo; the PNG is a file of the job:
+
+```bash
+curl -s -X POST 'http://localhost:8090/v1/images/generate?wait=true' -H 'Content-Type: application/json' \
+  -d '{"prompt": "a lighthouse on a cliff at sunset, oil painting", "seed": 7}'
+curl -s -o out.png http://localhost:8090/v1/jobs/<id>/file
+curl -s -X POST 'http://localhost:8090/v1/images/cutout?wait=true' -F file=@photo.jpg
+```
+
+Options and limits: [Images](services/images.md).
+
 ## Status, services, tests
 
 | Call | What it tells you |
@@ -128,6 +141,7 @@ transcript against the text it should say. Options: [Transcribe and speakers](se
 | `GET /v1/services` | every service: state, model, VRAM estimated and in use, license, last test |
 | `POST /v1/services/{name}/test` | runs the built-in test of a service (job: follow its `check` events) |
 | `GET /v1/jobs` | recent jobs, newest first |
+| `GET /v1/jobs/{id}/file` | the file a job produced (images): it lives as long as the job |
 
 ## Errors
 

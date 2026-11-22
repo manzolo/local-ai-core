@@ -2,8 +2,8 @@
 
 **Local AI services on your own GPU, behind one API and one web page.** Search your notes by meaning, turn
 PDFs and scans into Markdown, get answers that cite the note or document they come from (every citation
-checked), and transcribe audio and video with who said what. More services (images, voice) join as compose
-profiles. Nothing leaves your machine.
+checked), transcribe audio and video with who said what, and make, upscale and cut out images. Each
+service is a compose profile you turn on. Nothing leaves your machine.
 
 [![CI](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml/badge.svg)](https://github.com/manzolo/local-ai-core/actions/workflows/ci.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -34,10 +34,11 @@ GPU to searching your own notes.
 | [Documents](docs/services/documents.md) | PDF (scanned too), images, Office, HTML → Markdown; into the library to ask about them | Docling 2.151.1 | ~3 GB | MIT · Apache-2.0 · CDLA-P-2.0 | `docs` |
 | [Transcribe](docs/services/transcribe.md) | audio and video → text, SRT, WebVTT; check against an expected text | faster-whisper large-v3 | ~5 GB | MIT | `transcribe` |
 | [Speakers](docs/services/transcribe.md) | who said what in a transcript | SpeechBrain ECAPA | ~1 GB | Apache-2.0 | `speakers` |
+| [Images](docs/services/images.md) | text → image, upscale ×2/×4, cut out | SDXL + Lightning, RealESRGAN, BiRefNet (ComfyUI) | ~8 GB | OpenRAIL++-M (use restrictions) · BSD-3 · MIT | `image` |
 
-Turn profiles on with `docker compose --profile docs --profile transcribe --profile speakers up -d`. The
-roadmap adds images (ComfyUI), handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each in its
-own profile.
+Turn profiles on with `docker compose --profile docs --profile transcribe --profile speakers --profile image
+up -d`. The GPU is shared: before each job the gateway frees what the others hold. The roadmap adds
+handwriting (qwen3-vl) and voice (XTTS-v2, non-commercial), each in its own profile.
 
 ## Documentation
 
@@ -54,7 +55,7 @@ own profile.
 | [Troubleshooting](docs/troubleshooting.md) | fix the usual problems |
 
 Services: [Search and Ask](docs/services/search-ask.md) · [Documents](docs/services/documents.md) ·
-[Transcribe and speakers](docs/services/transcribe.md).
+[Transcribe and speakers](docs/services/transcribe.md) · [Images](docs/services/images.md).
 
 ## At a glance
 
@@ -64,13 +65,15 @@ flowchart LR
     G --> S[search worker]
     G --> D[documents worker<br/>profile docs]
     G --> T[transcriber · speakers<br/>profiles transcribe, speakers]
+    G --> I[image worker · ComfyUI<br/>profile image]
     S --> O[(ollama<br/>on the GPU)]
     N[/your notes, read-only/] --> S
 ```
 
 - **One API** at `/v1`, described at `/docs` and `/openapi.json`; long work runs as jobs you can follow
   live.
-- **One GPU queue**: one heavy job at a time, so the services share a 12 GB card without running out.
+- **One GPU queue that makes room**: one heavy job at a time, and before each one the gateway frees the
+  VRAM the others hold, so every service fits on one 12 GB card.
 - **Safe by default**: listens on `127.0.0.1`, optional API key, upload limit, read-only notes, no telemetry.
 - **Tested like it matters**: known data → expected answers, plus errors put in on purpose that the tests
   must catch, on CPU in CI and on the real GPU with `make collaudo`.

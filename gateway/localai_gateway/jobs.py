@@ -35,6 +35,7 @@ class Job:
         self.result = None
         self.error = None
         self.events = []
+        self.file = None  # a result file (an image) served at /v1/jobs/{id}/file
         self._changed = asyncio.Condition()
 
     async def emit(self, type_, data=None):
@@ -72,7 +73,8 @@ class Job:
 
 
 class JobStore:
-    def __init__(self):
+    def __init__(self, on_evict=None):
+        self.on_evict = on_evict  # called with a job that leaves memory: its files go with it
         self.jobs = OrderedDict()
         self.gpu = asyncio.Lock()
         self.waiting = 0
@@ -86,7 +88,9 @@ class JobStore:
             old_id = next(iter(self.jobs))
             if self.jobs[old_id].status not in TERMINAL:
                 break
-            self.jobs.pop(old_id)
+            old = self.jobs.pop(old_id)
+            if self.on_evict:
+                self.on_evict(old)
         task = asyncio.create_task(self._run(job, fn, on_done))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)

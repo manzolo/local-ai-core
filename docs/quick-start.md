@@ -151,6 +151,18 @@ dialogue in `services/speakers/speakers_worker/selftest/dialogue.ogg`:
 The first transcription downloads the Whisper model (about 3 GB). Details and `curl`:
 [Transcribe and speakers](services/transcribe.md).
 
+## 11. Make images
+
+```bash
+docker compose --profile image up -d
+```
+
+Open the **Images** tab: *Generate* makes a picture from a description, *Upscale* enlarges a photo,
+*Cut out* removes its background. The first job downloads the models (about 7.4 GB). The pictures are made
+with SDXL, whose license allows commercial use but forbids some uses: see [Images](services/images.md).
+
+![A picture cut out on a transparent background](img/images-cutout.png)
+
 ## Next
 
 - Already running [ollama-docker](https://github.com/manzolo/ollama-docker)? Use its Ollama instead of a

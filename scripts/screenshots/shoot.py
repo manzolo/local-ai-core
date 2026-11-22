@@ -103,6 +103,28 @@ with sync_playwright() as pw:
         p.wait_for_timeout(3500)
         shot(p, "transcribe", full=True)
 
+    p = page(b, DESKTOP, tab="images")
+    p.wait_for_function("document.querySelector('#img-off').hidden", timeout=30_000)
+    if p.is_enabled("#img-go"):
+        p.fill("#img-prompt", "a red ceramic teapot on a plain light grey background, studio product photo, soft light")
+        p.fill("#img-seed", "1234")
+        p.click("#img-go")
+        p.wait_for_selector("#img-out:not([hidden])", timeout=900_000)
+        p.wait_for_timeout(3500)
+        shot(p, "images-generate", full=True)
+        # the picture just made, cut out: the checkerboard shows the transparency
+        src = p.evaluate("document.querySelector('#img-view').src")
+        data = p.evaluate("async (u) => Array.from(new Uint8Array(await (await fetch(u)).arrayBuffer()))", src)
+        with open("/tmp/teapot.png", "wb") as f:
+            f.write(bytes(data))
+        p.check("input[name=img-mode][value=cutout]")
+        p.set_input_files("#img-file", "/tmp/teapot.png")
+        p.click("#img-go")
+        p.wait_for_function("document.querySelector('#img-meta').textContent.includes('1024') && "
+                            "document.querySelector('#img-state').textContent === ''", timeout=600_000)
+        p.wait_for_timeout(3500)
+        shot(p, "images-cutout", full=True)
+
     p = b.new_context(viewport=DESKTOP, device_scale_factor=2).new_page()
     p.goto(f"{BASE}/docs")
     p.wait_for_selector(".opblock", timeout=30_000)

@@ -157,13 +157,21 @@ def attribute(engine, path, segs, n=0, threshold=0.55):
     return {"speakers": k, "labels": labels}
 
 
+def restart_soon():
+    """The only way to give back all the VRAM, CUDA context and library caches included: leave. Docker
+    restarts the container (restart: unless-stopped) clean, with no GPU memory, in a few seconds."""
+    if os.environ.get("RESTART_TO_FREE_VRAM", "1") == "1":
+        asyncio.get_running_loop().call_later(0.5, os._exit, 0)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(app):
     async def idle_unloader():
         while True:
             await asyncio.sleep(30)
             if IDLE_MINUTES and time.time() - app.state.last_used > IDLE_MINUTES * 60 and not app.state.lock.locked():
-                app.state.engine.unload()
+                if app.state.engine.unload():
+                    restart_soon()
     task = asyncio.create_task(idle_unloader())
     yield
     task.cancel()
@@ -230,7 +238,10 @@ async def attribute_endpoint(req: AttributeReq):
 @app.post("/unload")
 async def unload():
     async with app.state.lock:
-        return {"unloaded": app.state.engine.unload()}
+        unloaded = app.state.engine.unload()
+    if unloaded:
+        restart_soon()
+    return {"unloaded": unloaded}
 
 
 # ------------------------------------------------------------------------------------------ self-test

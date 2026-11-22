@@ -191,6 +191,8 @@ def test_web_ui_is_self_contained_and_uses_only_the_public_api(client):
         # no CDN, no fonts from elsewhere: everything comes from the gateway itself
         assert not re.search(r"""(src|href)\s*=\s*["']https?://|@import|url\(\s*["']?https?://""", text), name
         for used in re.findall(r"""["'`](/v1/[a-z/]+)""", text):
-            # "/v1/jobs/" is followed by an id in the code: it must start a real path
-            probe = used + "x" if used.endswith("/") else used
-            assert any(f == probe or f.startswith(probe + "/") for f in filled), used
+            # "/v1/jobs/" or "/v1/images/" is followed by an id or a name in the code: it must start a real path
+            if used.endswith("/"):
+                assert any(f.startswith(used) and len(f) > len(used) for f in filled), used
+            else:
+                assert used in filled or any(f.startswith(used + "/") for f in filled), used

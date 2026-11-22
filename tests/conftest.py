@@ -4,6 +4,7 @@ import shutil
 import pytest
 
 os.environ.setdefault("LOCAL_AI_NO_APP", "1")  # the gateway module builds no app at import time
+os.environ.setdefault("RESTART_TO_FREE_VRAM", "0")  # workers stay alive in the tests
 
 from fake_ollama import FakeOllama  # noqa: E402
 from search_worker import main as worker  # noqa: E402
@@ -144,3 +145,45 @@ def speech_workers(tmp_path, monkeypatch):
     tr.app.state.engine = FakeWhisper()
     spk.app.state.engine = FakeEncoder()
     return tr.app, spk.app, uploads
+
+
+# ------------------------------------------------------------------ images: fake ComfyUI and model server
+
+@pytest.fixture
+def image_worker(tmp_path, monkeypatch):
+    """The real image worker, wired to a fake ComfyUI and a fake model server with small model files."""
+    import hashlib
+
+    import httpx
+    from fake_comfy import FakeComfy
+    from image_worker import main as img
+    from image_worker import models
+
+    uploads, root = tmp_path / "uploads", tmp_path / "models"
+    uploads.mkdir(exist_ok=True)
+    blobs, fakes = {}, {}
+    for key in ("CHECKPOINT", "LIGHTNING", "REALESRGAN", "BIREFNET"):
+        real = getattr(models, key)
+        data = f"fake weights of {real.file}".encode() * 1000
+        url = f"https://models.example/{real.file}"
+        blobs[url] = data
+        fakes[key] = models.Model(real.folder, real.file, url, hashlib.sha256(data).hexdigest(), len(data),
+                                  real.license)
+        monkeypatch.setattr(models, key, fakes[key])
+    monkeypatch.setattr(models, "FOR_TASK", {"generate": [fakes["CHECKPOINT"], fakes["LIGHTNING"]],
+                                             "upscale": [fakes["REALESRGAN"]], "cutout": [fakes["BIREFNET"]]})
+    downloads = []
+
+    def serve(request):
+        downloads.append(str(request.url))
+        data = blobs.get(str(request.url))
+        return httpx.Response(200, content=data) if data else httpx.Response(404)
+
+    comfy = FakeComfy()
+    monkeypatch.setattr(img, "UPLOADS", str(uploads))
+    monkeypatch.setattr(img, "MODELS_DIR", str(root))
+    img.app.state.comfy_transport = comfy.transport
+    img.app.state.download_transport = httpx.MockTransport(serve)
+    img.app.state.comfy, img.app.state.downloads, img.app.state.blobs = comfy, downloads, blobs
+    img.app.state.models_root = str(root)
+    return img.app

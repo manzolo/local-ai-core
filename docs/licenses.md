@@ -29,9 +29,16 @@ No third-party code is copied into the repository.
 | PP-OCRv6 (through RapidOCR) | documents (OCR of scans) | Apache-2.0 | [RapidOCR](https://github.com/RapidAI/RapidOCR), from [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) |
 | Whisper large-v3 (CTranslate2 conversion) | transcribe | MIT | [Systran/faster-whisper-large-v3](https://huggingface.co/Systran/faster-whisper-large-v3) |
 | spkrec-ecapa-voxceleb | speakers | Apache-2.0 | [speechbrain/spkrec-ecapa-voxceleb](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb) |
+| SDXL base 1.0 | images (generate) | **CreativeML OpenRAIL++-M**, with use restrictions | [stabilityai/stable-diffusion-xl-base-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0) |
+| SDXL-Lightning 4-step LoRA | images (generate) | **CreativeML OpenRAIL++-M**, with use restrictions | [ByteDance/SDXL-Lightning](https://huggingface.co/ByteDance/SDXL-Lightning) |
+| RealESRGAN x4plus | images (upscale) | BSD-3-Clause | [xinntao/Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.1.0) |
+| BiRefNet | images (cut out) | MIT | [Comfy-Org/BiRefNet](https://huggingface.co/Comfy-Org/BiRefNet), from [ZhengPeng7/BiRefNet](https://github.com/ZhengPeng7/BiRefNet) |
 
-All of them allow commercial use. If you set `OLLAMA_MODEL` or `EMBED_MODEL` to another model, check
-that model's license yourself.
+All of them allow commercial use. The two OpenRAIL++-M models add **use restrictions** that pass to
+whoever uses them and to the pictures' use: no breaking the law, no harm to people, no deceiving with
+generated content, and the others listed in the license (its Attachment A). The image service states it
+in `/v1/services` and in the web page. If you set `OLLAMA_MODEL`, `EMBED_MODEL` or `IMAGE_CHECKPOINT` to
+another model, check that model's license yourself.
 
 ## 3. Software, installed when the images are built
 
@@ -49,10 +56,13 @@ that model's license yourself.
 | [Swagger UI](https://github.com/swagger-api/swagger-ui) (served at `/docs`) | Apache-2.0, its `LICENSE` and `NOTICE` kept next to it in the image | gateway |
 | Python and Debian (base image `python:3.12-slim-bookworm`) | PSF, and the licenses of the Debian packages | all images |
 | [Playwright](https://github.com/microsoft/playwright-python) (headless Chromium) | Apache-2.0 | only `scripts/screenshots.sh` and `scripts/make-fixtures.sh` |
+| [ComfyUI](https://github.com/comfyanonymous/ComfyUI) v0.46.2 | **GPL-3.0** | image: cloned at a fixed commit when the image is built, run **unmodified as a separate program** and spoken to over HTTP; no ComfyUI file is in this repository |
 | [Piper](https://github.com/OHF-Voice/piper1-gpl) | GPL-3.0 | only `scripts/make-audio-fixtures.sh`, never in a service image; the audio it makes is not covered by its license |
 
 **Every Python package, with its version and license:** [licenses-python.md](licenses-python.md)
-(generated from PyPI by `scripts/licenses.py`). None is GPL or AGPL.
+(generated from PyPI by `scripts/licenses.py`). The only GPL ones are ComfyUI's own packages
+(`comfy-aimdo`, `comfyui-embedded-docs`, `comfyui_frontend_package`), inside the **image** image only, used
+unmodified by ComfyUI; none is AGPL, and none is imported by this repository's code.
 
 ## 4. If you publish the images
 
@@ -65,6 +75,8 @@ inside it:
   publish only the images without CUDA (gateway, search);
 - the **transcriber** and **speakers** images contain FFmpeg from Debian, whose build includes GPL
   components: publishing them means offering the corresponding source, as Debian does;
+- the **image** image contains ComfyUI (GPL-3.0): publishing it means offering ComfyUI's source (its
+  public repository at the commit in the Dockerfile) and keeping its license;
 - keep the license files of the components (Apache-2.0 asks for its `NOTICE` files too);
 - MPL-2.0 packages (certifi, tqdm) are used unmodified: their source stays available on PyPI.
 
@@ -72,5 +84,4 @@ inside it:
 
 The roadmap includes XTTS-v2 for voice, which is under the **Coqui Public Model License: non-commercial
 use only**. It will live in its own profile, off by default, and its license will be shown in the README,
-in `/v1/services` and in the web page. Image models (SDXL checkpoints, LoRA) will have their licenses
-checked one by one before they are added.
+in `/v1/services` and in the web page.

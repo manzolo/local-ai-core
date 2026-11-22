@@ -101,6 +101,13 @@ class DoclingConverter:
         return True
 
 
+def restart_soon():
+    """The only way to give back all the VRAM, CUDA context and library caches included: leave. Docker
+    restarts the container (restart: unless-stopped) clean, with no GPU memory, in a few seconds."""
+    if os.environ.get("RESTART_TO_FREE_VRAM", "1") == "1":
+        asyncio.get_running_loop().call_later(0.5, os._exit, 0)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(app):
     async def idle_unloader():
@@ -108,7 +115,8 @@ async def lifespan(app):
             await asyncio.sleep(30)
             idle = time.time() - app.state.last_used
             if IDLE_MINUTES and idle > IDLE_MINUTES * 60 and not app.state.lock.locked():
-                app.state.converter.unload()
+                if app.state.converter.unload():
+                    restart_soon()
     task = asyncio.create_task(idle_unloader())
     yield
     task.cancel()
@@ -187,7 +195,10 @@ async def convert(req: ConvertReq):
 @app.post("/unload")
 async def unload():
     async with app.state.lock:
-        return {"unloaded": app.state.converter.unload()}
+        unloaded = app.state.converter.unload()
+    if unloaded:
+        restart_soon()
+    return {"unloaded": unloaded}
 
 
 # ------------------------------------------------------------------------------------------ self-test

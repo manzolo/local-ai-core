@@ -68,6 +68,20 @@ class OllamaClient:
                     await on_progress(status, done or None, total or None)
 
 
+RESTART_WAIT = 30  # seconds: a GPU worker restarts to give back its VRAM, and is back in a few
+
+
+async def _connect_retry(open_call):
+    """Calls open_call until the worker accepts the connection (or RESTART_WAIT runs out)."""
+    for attempt in range(RESTART_WAIT):
+        try:
+            return await open_call()
+        except httpx.ConnectError:
+            if attempt == RESTART_WAIT - 1:
+                raise
+            await asyncio.sleep(1)
+
+
 class Worker:
     """A worker container on the compose network. It is never exposed outside it."""
 
@@ -89,7 +103,7 @@ class Worker:
     async def post(self, path, body, timeout=120):
         async with self._client(httpx.Timeout(timeout, connect=5)) as c:
             try:
-                r = await c.post(path, json=body)
+                r = await _connect_retry(lambda: c.post(path, json=body))
             except httpx.HTTPError as e:
                 raise JobFailed(f"worker {self.name} not reachable: {e}") from None
         if r.status_code >= 400:
@@ -100,6 +114,7 @@ class Worker:
         """POST and yield the NDJSON events; an `error` event becomes a JobFailed."""
         try:
             async with self._client(httpx.Timeout(600, connect=5)) as c:
+                await _connect_retry(lambda: c.get("/health"))  # a worker restarting to free VRAM: wait
                 async with c.stream("POST", path, json=body) as r:
                     if r.status_code >= 400:
                         await r.aread()

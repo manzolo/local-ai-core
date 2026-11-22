@@ -19,6 +19,7 @@ Everything is set with environment variables in a `.env` file next to `docker-co
 | `AUTO_INDEX` | `true` | index the notes at startup |
 | `SEARCH_MIN_SCORE` | `0.35` | minimum similarity of a search hit (0–1) |
 | `IDLE_UNLOAD_MINUTES` | `10` | Ollama and the GPU workers free a model's VRAM after this many minutes unused |
+| `IMAGE_CHECKPOINT` | empty (SDXL base 1.0) | another SDXL checkpoint, put in the `image-models` volume under `checkpoints/`; check its license |
 | `WHISPER_MODEL` | `large-v3` | the faster-whisper model (`small`, `medium`, `large-v3`…): smaller is faster and less accurate |
 
 After a change: `docker compose up -d` (only the containers whose settings changed restart).
@@ -33,14 +34,16 @@ Light services start by default; heavy ones are compose profiles you turn on:
 | `docs` | documents → Markdown (Docling) | ~7 GB | ~3 GB while converting |
 | `transcribe` | speech → text and subtitles (faster-whisper) | ~3.4 GB | ~5 GB while transcribing |
 | `speakers` | who said what (SpeechBrain) | ~6.6 GB, PyTorch shared with `docs` | ~1 GB |
+| `image` | images: generate, upscale, cut out (ComfyUI) | ~10 GB, PyTorch shared | ~8 GB while working |
 
 ```bash
 docker compose --profile docs up -d          # or COMPOSE_PROFILES=docs,transcribe,speakers in .env
 ```
 
 A service whose profile is off shows as *off* in **Services** and answers `503`. The GPU queue runs one
-heavy job at a time; before a GPU worker starts, the gateway asks Ollama to free its models if VRAM is
-short.
+heavy job at a time; before each one, if VRAM is short, the gateway asks Ollama to free its models and the
+other workers to unload. A worker that unloads restarts its container: it is the only way to give back all
+of its memory, CUDA context included, and it is back in a few seconds.
 
 ## Recipes
 

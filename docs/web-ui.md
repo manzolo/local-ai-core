@@ -23,6 +23,8 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
 - **Transcribe** (profiles `transcribe`, `speakers`): drop an audio or video file; the sentences appear
   with their time and speaker, the progress follows the seconds of audio, and the transcript downloads as
   TXT, SRT or WebVTT. *Check it says a given text* scores the transcript against an expected text.
+- **Images** (profile `image`): *Generate*, *Upscale* or *Cut out*; the result shows on a checkerboard,
+  so transparency is visible, and downloads as PNG. The license note of SDXL stays under it.
 - **Services**: each service with its model, VRAM, license and last test. **Run test** runs its built-in
   test and shows every check as it completes.
 
@@ -31,6 +33,8 @@ elsewhere, so it works offline. It uses only the public `/v1` API, the same one 
 ![Documents](img/documents.png)
 
 ![Transcribe](img/transcribe.png)
+
+![Images](img/images-generate.png)
 
 ![Services and a test run](img/services.png)
 

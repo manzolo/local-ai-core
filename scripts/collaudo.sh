@@ -94,5 +94,18 @@ sys.exit(0 if r["speakers"] == 2 and seq.startswith("12") and "window" in r["tex
     else ko "transcription with speakers wrong: ${res:0:300}"; fi
 fi
 
+if py 'import json,sys; s={x["name"]: x["state"] for x in json.load(sys.stdin)["services"]}; sys.exit(s.get("images") != "ready")' <<<"$services"; then
+    echo "▸ images, then ask: the GPU is shared"
+    res=$(post "/v1/images/generate?wait=true" '{"prompt":"a lighthouse on a cliff at sunset, oil painting","width":1024,"height":1024,"seed":7}')
+    if py 'import json,sys; r=json.load(sys.stdin)["result"]; print("   ", r["width"], "x", r["height"], "in", r["secs"], "s"); sys.exit(0 if (r["width"], r["height"]) == (1024, 1024) else 1)' <<<"$res"; then
+        ok "1024×1024 picture generated"
+    else ko "generation failed: ${res:0:300}"; fi
+    res=$(post "/v1/ask?wait=true" '{"question":"When is the stove serviced?"}')
+    if py 'import json,sys; r=json.load(sys.stdin)["result"]; print("   ", r["answer"][:110]); sys.exit(0 if r["grounded"] else 1)' <<<"$res"; then
+        ok "ask right after an image: answered, the GPU made room"
+    else ko "ask after an image failed: ${res:0:300}"; fi
+    get /v1/status | py 'import json,sys; s=json.load(sys.stdin); g=s["gpu"] or {}; print("    VRAM now", g.get("vram_used_gb"), "of", g.get("vram_total_gb"), "GB; in Ollama:", ", ".join(m["name"] for m in s["ollama"]["loaded"]) or "nothing")'
+fi
+
 [ $rc = 0 ] && echo "✓ collaudo passed" || echo "✗ collaudo FAILED"
 exit $rc

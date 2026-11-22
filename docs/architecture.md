@@ -17,6 +17,8 @@ flowchart LR
         SP["speakers (profile speakers)<br/>SpeechBrain ECAPA"]
         G -->|"/transcribe"| TR
         G -->|"/attribute"| SP
+        IM["image (profile image)<br/>adapter → ComfyUI on 127.0.0.1"]
+        G -->|"/generate /upscale /cutout"| IM
         D -.->|"Markdown into the library"| L[("library")]
         L --> S
         O[("ollama<br/>bge-m3 · qwen3.5:9b")]
@@ -42,7 +44,11 @@ id, and the client follows it with `GET /v1/jobs/{id}` or the event stream
 `GET /v1/jobs/{id}/events` (Server-Sent Events: `status`, `progress`, `sources`, `token`, `check`,
 `result`, `error`). `?wait=true` turns any job into a plain blocking call.
 
-GPU jobs wait in **one queue, one at a time**. On a 12 GB card a speech model, a voice model and an LLM
+GPU jobs wait in **one queue, one at a time**, and before each one the gateway makes room: if the free
+VRAM is less than the job needs, it asks Ollama to free its models (not the one the job is about to use)
+and the other workers to unload. A worker that unloads restarts its container, which gives back all of its
+memory; ComfyUI, the largest, is stopped and restarted by its adapter.
+ On a 12 GB card a speech model, a voice model and an LLM
 do not fit together; a queue is simpler and more honest than guessing what fits. The status bar of the
 web page and `GET /v1/status` show what is running and how many jobs wait.
 
@@ -74,6 +80,8 @@ loaded, VRAM in use, last test).
 | `library` | converted documents you chose to keep; searched with your notes as `library/…` |
 | `documents-models` | Docling's models |
 | `transcriber-models`, `speakers-models` | the Whisper and ECAPA models |
+| `image-models` | SDXL, the Lightning LoRA, RealESRGAN and BiRefNet |
+| `gateway-data/results` | the PNG of each image job, deleted with the job |
 | `NOTES_DIR` | your notes, mounted read-only, never written |
 
 Nothing is sent anywhere: no telemetry, and the models are downloaded from the Ollama registry only.
