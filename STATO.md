@@ -39,7 +39,8 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
   nota inventata con somiglianza 1,00 e lascia vuota la pagina bianca; XTTS-v2 parla con le 58 voci pronte,
   numeri in lettere, ogni pezzo riascoltato da Whisper (somiglianza 1,00) e l'avviso di licenza dentro
   ogni file (WAV, MP3, OGG). Collaudo completo con tutti gli 8 servizi superato.
-- **Barra di stato** (2026-11-22): mostra anche i worker con un modello caricato, con la loro stima
+- **Barra di stato** (2026-11-22): un modello per riga con i GB e una barretta, colonna più larga,
+  nomi dei servizi tradotti; mostra anche i worker con un modello caricato, con la loro stima
   (`~`), oltre ai modelli di Ollama misurati; l'utilizzo GPU è etichettato «carico»; la pagina si
   aggiorna appena un lavoro finisce. Lo «0%» che si vedeva durante la prova da zero era il carico di
   calcolo mentre si scaricavano i modelli (rete, non GPU).
@@ -182,8 +183,8 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   controlla sempre che la mutazione si applichi (lo script lo segnala con «?»).
 - La memoria per processo non si legge da dentro un container (`nvidia-smi` non sa a quale container
   appartiene un processo): i worker dichiarano se hanno un modello caricato e la loro stima.
-- Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
-  `docker compose down -v` lo toglie.
+- Il volume `local-ai-core_ollama` (Ollama interno, ~14 GB) è stato rimosso il 2026-11-22 col sì del
+  maintainer: in modalità famiglia non serve; in modalità autonoma i modelli si riscaricano da soli.
 
 ## Prossimo passo
 

@@ -88,6 +88,9 @@ const T = {
     error: "Errore",
     vram_est: "~{e} GB stimati", loaded: "modelli caricati", not_loaded: "modelli non caricati",
     tab_handwriting: "Scrittura", tab_voice: "Voce",
+    svc_search: "Ricerca per significato", svc_ask: "Domande sulle note", svc_documents: "Documenti in Markdown",
+    svc_transcribe: "Trascrizione", svc_speakers: "Chi ha detto cosa", svc_images: "Immagini",
+    svc_handwriting: "Scrittura a mano", svc_voice: "Voce",
     hw_off: "Il servizio di scrittura a mano è spento: avvia lo stack con docker compose --profile handwriting up -d.",
     hw_drop: "Trascina qui la foto di una pagina scritta a mano, o sceglila", hw_expect_sum: "Controlla che legga un testo",
     hw_expect_ph: "Il testo che dice la pagina: il risultato mostra quanto la lettura ci si avvicina.", hw_go: "Leggi",
@@ -136,6 +139,9 @@ let lang = store.get("lang") || ((navigator.language || "en").startsWith("it") ?
 const $ = (s) => document.querySelector(s);
 const t = (k, vars = {}) => (T[lang][k] ?? T.en[k] ?? k).replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? "");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// The services' names come from the API in English: the page shows them in its own language.
+const svcName = (name, title) => (T[lang][`svc_${name}`] ?? title ?? name);
 
 // ------------------------------------------------------------------------------------------- API
 
@@ -224,12 +230,17 @@ async function refreshStatus() {
     $("#st-vram-bar").classList.toggle("hot", p > 85);
     $("#st-vram").textContent = `${g.vram_used_gb} / ${g.vram_total_gb} GB · ${t("load")} ${g.utilization}%`;
   }
-  // Ollama's models with the VRAM it measures; the workers with their own estimate (~): per-process
-  // memory cannot be told apart from inside a container
-  const held = (st.ollama.loaded || []).map((m) => `${m.name} (${m.vram_gb} GB)`)
-    .concat((st.workers || []).map((w) => `${w.title} (~${w.vram_gb_estimate} GB)`));
-  $("#st-loaded").textContent = held.length ? held.join(", ") : t("nothing");
-  $("#st-loaded").title = held.join("\n");
+  // One line per model: Ollama's with the VRAM it measures, the workers' with their own estimate (~),
+  // since per-process memory cannot be told apart from inside a container. Largest first; the bar is the
+  // share of the card it takes.
+  const total = (g && g.vram_total_gb) || 12;
+  const held = (st.ollama.loaded || []).map((m) => ({ name: m.name.replace(/:latest$/, ""), gb: m.vram_gb, est: false, by: "Ollama" }))
+    .concat((st.workers || []).map((w) => ({ name: svcName(w.service, w.title), gb: w.vram_gb_estimate, est: true, by: w.model })))
+    .sort((a, b) => b.gb - a.gb);
+  $("#st-loaded").innerHTML = held.length ? held.map((h) => `<li title="${esc(h.by)}">
+      <span class="n">${esc(h.name)}</span><span class="gb">${h.est ? "~" : ""}${h.gb} GB</span>
+      <i style="width:${Math.min(100, (100 * h.gb) / total)}%"></i></li>`).join("")
+    : `<li class="none">${t("nothing")}</li>`;
   const q = st.queue;
   $("#st-queue").textContent = q.running ? `${t("running")}: ${q.running.kind}${q.waiting ? ` · ${q.waiting} ${t("waiting")}` : ""}` : t("idle");
   $("#st-ollama").textContent = st.ollama.reachable ? `Ollama ${st.ollama.version}` : t("unreachable");
@@ -367,7 +378,7 @@ async function loadServices() {
     const lt = s.last_test;
     const test = lt ? `<span class="${lt.ok ? "ok" : "ko"}">${lt.ok ? "✓" : "✗"} ${t(lt.ok ? "passed" : "failed")}</span> · ${esc(lt.date)}` : t("never");
     return `<article class="card" data-name="${esc(s.name)}">
-      <h2>${esc(s.title || s.name)} <span class="badge ${STATE_CLASS[s.state] || ""}">${esc(t("st_" + s.state))}</span></h2>
+      <h2>${esc(svcName(s.name, s.title))} <span class="badge ${STATE_CLASS[s.state] || ""}">${esc(t("st_" + s.state))}</span></h2>
       ${s.description ? `<p>${esc(s.description)}</p>` : ""}${s.detail ? `<p>${esc(s.detail)}</p>` : ""}${s.note ? `<p>${esc(s.note)}</p>` : ""}
       ${s.model ? `<dl class="facts">
         <dt>${t("model")}</dt><dd>${esc(s.model)}</dd>
