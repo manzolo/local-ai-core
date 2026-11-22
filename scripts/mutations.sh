@@ -91,4 +91,6 @@ mut services/voice/voice_worker/main.py '    heard = re.sub(r"\b(\d{1,2})\.(\d{2
     "Whisper's digits are compared with the spelled-out words (good pieces redone)"
 mut services/voice/voice_worker/main.py '            write_wav(wav_path, samples, eng.sample_rate, notice=NOTICE)' '            write_wav(wav_path, samples, eng.sample_rate)' \
     "the audio leaves without the license notice the CPML asks for"
+mut gateway/localai_gateway/main.py '                elif key and key not in present and s.get("pulls_model_on_first_use"):' '                elif False:' \
+    "a service that downloads its model on first use is reported missing on a fresh install"
 exit $rc

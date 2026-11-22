@@ -230,3 +230,9 @@ def test_the_license_notice_travels_inside_mp3_and_ogg(client, tmp_path):
         path = tmp_path / f"out.{fmt}"
         path.write_bytes(client.get(res["result"]["file"]).content)
         assert LICENSE_URL in (notice_of(str(path)) or ""), fmt
+
+
+def test_handwriting_is_ready_before_its_model_is_downloaded(client, fake):
+    fake.models = [m for m in fake.models if "qwen3-vl" not in m]  # a fresh install: not pulled yet
+    s = {x["name"]: x for x in client.get("/v1/services").json()["services"]}["handwriting"]
+    assert s["state"] == "ready" and "first use" in s["note"]

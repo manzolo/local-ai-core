@@ -96,7 +96,7 @@ async def info():
             "name": "handwriting", "title": "Handwriting",
             "description": "Photos of handwritten notes become text, with a vision model on Ollama; the picture "
                            "never leaves the machine. Downloads its model on first use.",
-            "model": m, "vram_gb": 7, "license": "Apache-2.0",
+            "model": m, "vram_gb": 7, "license": "Apache-2.0", "pulls_model_on_first_use": True,
             "license_url": "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct", "endpoints": ["/v1/handwriting"],
         }],
     }

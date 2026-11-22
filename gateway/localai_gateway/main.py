@@ -231,6 +231,9 @@ def create_app(settings=None, ollama_transport=None, worker_transports=None):
                     state = "ready"
                 elif present is None:
                     state = "ollama_unreachable"
+                elif key and key not in present and s.get("pulls_model_on_first_use"):
+                    state = "ready"  # its model comes on the first job, with progress: nothing is broken
+                    s = {**s, "note": "the model downloads on first use"}
                 elif key and key not in present:
                     state = "model_missing"
                 else:

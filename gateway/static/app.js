@@ -363,7 +363,7 @@ async function loadServices() {
     const test = lt ? `<span class="${lt.ok ? "ok" : "ko"}">${lt.ok ? "✓" : "✗"} ${t(lt.ok ? "passed" : "failed")}</span> · ${esc(lt.date)}` : t("never");
     return `<article class="card" data-name="${esc(s.name)}">
       <h2>${esc(s.title || s.name)} <span class="badge ${STATE_CLASS[s.state] || ""}">${esc(t("st_" + s.state))}</span></h2>
-      ${s.description ? `<p>${esc(s.description)}</p>` : ""}${s.detail ? `<p>${esc(s.detail)}</p>` : ""}
+      ${s.description ? `<p>${esc(s.description)}</p>` : ""}${s.detail ? `<p>${esc(s.detail)}</p>` : ""}${s.note ? `<p>${esc(s.note)}</p>` : ""}
       ${s.model ? `<dl class="facts">
         <dt>${t("model")}</dt><dd>${esc(s.model)}</dd>
         <dt>${t("vram")}</dt><dd>${s.vram_in_use_gb == null ? t("vram_est", { e: s.vram_gb }) + " · " + t(s.loaded ? "loaded" : "not_loaded") : t("vram_val", { e: s.vram_gb, u: s.vram_in_use_gb })}</dd>
