@@ -48,7 +48,7 @@ in its own profile.
 | [Architecture](docs/architecture.md) | see how gateway, workers and Ollama fit together |
 | [Join the local-ai-lab family](docs/family.md) | share Ollama and `local-ai-net` with the other projects |
 | [Testing](docs/testing.md) | understand the tests, the mutations and the GPU test |
-| [Licenses](docs/licenses.md) | check the license of the code and of each model |
+| [Licenses](docs/licenses.md) | check the license of the code, of each model and of every package |
 | [Troubleshooting](docs/troubleshooting.md) | fix the usual problems |
 
 Services: [Search and Ask](docs/services/search-ask.md) · [Documents](docs/services/documents.md).

@@ -2,6 +2,7 @@
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 
 # Swagger UI for /docs, baked into the image (no CDN at runtime), checked against its sha256.
+# Apache-2.0: its LICENSE, NOTICE and the notices of the libraries it bundles travel with it.
 FROM ${PYTHON_IMAGE} AS swagger
 ARG SWAGGER_UI_VERSION=5.34.1
 ARG SWAGGER_UI_SHA256=8e7286de0230e431fc8a5a75490d28117af3d0c306413b6f9e17f7bb55045fb6
@@ -12,7 +13,8 @@ got = hashlib.sha256(data).hexdigest(); \
 sys.exit('swagger-ui-dist checksum mismatch: ' + got) if got != '${SWAGGER_UI_SHA256}' else None; \
 t = tarfile.open(fileobj=io.BytesIO(data)); \
 [t.extract(m, '/tmp', filter='data') for m in t.getmembers() \
- if m.name in ('package/swagger-ui-bundle.js', 'package/swagger-ui.css', 'package/LICENSE')]" \
+ if m.name in ('package/swagger-ui-bundle.js', 'package/swagger-ui.css', 'package/LICENSE', \
+ 'package/NOTICE', 'package/swagger-ui-bundle.js.LICENSE.txt')]" \
  && mkdir -p /swagger && mv /tmp/package/* /swagger/
 
 FROM ${PYTHON_IMAGE}
