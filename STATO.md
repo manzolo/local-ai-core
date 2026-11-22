@@ -53,15 +53,15 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker interni ─
 | Job | in memoria nel gateway, risultati su volume | basta alla fase 1; un riavvio perde i job in corso |
 | GPU | il compose di base chiede la GPU NVIDIA | è il requisito dichiarato; la CI usa worker finti |
 | Lingua di questa pagina | italiano | è il quaderno di lavoro; README e codice in inglese |
+| Nomi | repo `local-ai-core`, servizio compose `gateway`, OpenAPI «Local AI Core» | deciso da Andrea il 2026-11-22 |
 | Licenza del codice | MIT | come da brief; licenze dei modelli nel README, una per una |
 | Brief di partenza | `PROMPT.md` fuori da git (`.gitignore`) | contiene percorsi e nomi privati |
 
 ## Scelte aperte
 
-1. **Nome del repo e nome del gateway nell'API** (la domanda di adesso).
-2. `documents → search → ask` sostituisce `ollapdf` e `PDF-Chatbot-Ollama-Langchain-Docker` o li
+1. `documents → search → ask` sostituisce `ollapdf` e `PDF-Chatbot-Ollama-Langchain-Docker` o li
    affianca? Si decide alla fase 2.
-3. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova generato con
+2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova generato con
    XTTS: da verificare alle fasi 4 e 5.
 
 ## Cosa manca
@@ -71,5 +71,5 @@ Tutto il codice. Le fasi sono quelle del brief: 1 scheletro con search + ask, 2 
 
 ## Prossimo passo
 
-Avuta la risposta sui nomi, fase 1. Criterio: `git clone && docker compose up -d`, poi
+Fase 1. Criterio: `git clone && docker compose up -d`, poi
 `http://localhost:8090` risponde a una domanda citando le note di esempio.
