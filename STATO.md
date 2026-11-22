@@ -1,75 +1,92 @@
 # Stato di local-ai-core
 
-Aggiornato: 2026-11-22 (sessione 1). **Fase: proposta di architettura, niente codice ancora.**
+Aggiornato: 2026-11-22 (sessione 1). **Fase 1 completata e collaudata. Prossima: fase 2, documenti.**
+Niente è pubblicato: repo git locale su `main`, nessun remoto.
 
-## Cosa funziona
+## Cosa funziona (provato davvero)
 
-Niente: il repo contiene solo questa pagina. La cartella è stata inizializzata con git, senza remoto.
+- **Da zero, seguendo il quick start alla lettera** su un clone pulito, volumi cancellati, Ollama vuoto:
+  `docker compose up -d` → modelli scaricati e note indicizzate in circa 2 minuti (rete veloce) →
+  domanda dalla pagina e con `curl` → risposta giusta con la sua fonte. Passo 6 (`NOTES_DIR` proprio)
+  provato con una cartella sintetica.
+- **Modalità famiglia** (`docker-compose.local-ai.yml`): l'Ollama interno resta spento, si usa quello di
+  `local-ai-net`; il gateway risponde come `http://local-ai-core:8090` dalla rete condivisa.
+- **Collaudo GPU** (`make collaudo`) superato in tutte e due le modalità: 8 controlli del collaudo
+  interno (3 ricerche con parole diverse dalle note, aggiornamento incrementale, indice troncato
+  rifiutato, risposta con fonte, domanda senza risposta, citazione inventata segnalata) + domanda end to end.
+- **Test su CPU**: 25 test con Ollama finto, lint pulito, 8 mutazioni tutte colte.
+- **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
+- Gateway e worker: immagini da ~140 MB, utente non root, nessuna porta dei worker pubblicata.
 
-## Architettura proposta
+## Architettura (com'è adesso)
 
 ```
-browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker interni ──► Ollama
-            /v1/… · /openapi.json · /docs · UI     (rete di compose)   (suo o di local-ai-net)
+browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ──► Ollama
+            /v1/… · /openapi.json · /docs · UI       (rete compose)    (suo, o di local-ai-net)
 ```
 
-- **Gateway** (`gateway/`): l'unico con una porta pubblicata, su `127.0.0.1:8090`. Serve l'API `/v1/…`,
-  l'OpenAPI, la pagina web statica. Tiene i **job** (`POST` → `202` + `job_id`, `GET /v1/jobs/{id}`,
-  avanzamento in SSE con polling di riserva) e la **coda GPU**: un lavoro pesante alla volta. Prima di
-  avviare un worker pesante chiede a Ollama di scaricare i modelli (`keep_alive: 0`).
-- **Worker** (`services/<nome>/`): un container per servizio, mai esposto. Contratto uguale per tutti:
-  `GET /health`, `GET /info` (nome, modello, versione, VRAM stimata, licenza, stato), `POST /run`,
-  `POST /unload`. Il modello si carica al primo uso e si scarica dopo `IDLE_UNLOAD_MINUTES` (default 10).
-  Il catalogo `GET /v1/services` è la somma degli `/info`: nessun elenco scritto a mano.
-- **Profili di compose**: senza profilo partono gateway, Ollama, search e ask. Poi `docs`, `transcribe`,
-  `image`, `handwriting`, e `voice` (XTTS, non commerciale: spento finché non lo si chiede).
-- **Ollama**: il compose di base ne porta uno suo, fissato a `0.40.16`, **senza porta pubblicata e senza
-  `container_name`**, così non urta un Ollama già acceso sull'host. Con
-  `docker-compose.local-ai.yml` quello interno si toglie (`!reset`) e il gateway entra in `local-ai-net`
-  con `OLLAMA_HOST=http://ollama:11434`.
-- **Modelli**: mai nel repo. Un servizio `models-init` scarica al primo avvio `bge-m3` e il modello di
-  `OLLAMA_MODEL` (default `qwen3.5:9b`); la pagina web mostra lo scaricamento.
-- **Dati**: volumi `models`, `index`, `uploads` (svuotato a lavoro finito); `NOTES_DIR` montata in sola
-  lettura, di default `examples/notes` (note sintetiche in inglese).
-- **Ricerca**: pezzi tagliati ai titoli, vettori `float32` su file, aggiornamento incrementale per sha1,
-  indice incoerente rifiutato. **Domande**: risposta solo dai pezzi trovati, citazioni `[n]` controllate
-  contro i pezzi, «not found» senza chiamare il modello se la ricerca è vuota.
-- **Interfaccia**: una pagina, HTML + JS senza build e senza CDN, chiara e scura, inglese e italiano.
-  Usa solo `/v1/…`.
-- **Sicurezza**: ascolto su `127.0.0.1`, `LOCAL_AI_API_KEY` facoltativa, `MAX_UPLOAD_MB`, niente telemetria.
-- **Versioni**: immagini base per digest, `constraints.txt` per pip.
-- **Test**: `pytest` in GitHub Actions su CPU con Ollama e worker finti, ognuno con un errore introdotto
-  che deve essere colto; `make collaudo` per la prova vera sulla GPU.
-- **Documentazione**: `README.md` è l'indice; le sezioni stanno in `docs/`, una per file. La prima è
-  `docs/quick-start.md`, la guida per partire da zero: ogni fase vi aggiunge il suo passo e si riesegue
-  alla lettera su un clone pulito. Le schermate si fanno durante la prova (`make screenshots`, Chromium
-  headless in container) e mostrano solo dati sintetici.
+- **Gateway** (`gateway/localai_gateway/`): API `/v1`, OpenAPI, Swagger UI cotta nell'immagine (niente
+  CDN), pagina web statica. Job in memoria con eventi SSE e `?wait=true`; coda GPU con un lavoro alla
+  volta; chiave API facoltativa; limite sul corpo delle richieste anche a pezzi. All'avvio aspetta
+  Ollama, scarica i modelli che mancano (avanzamento sul modello intero), indicizza le note.
+- **Worker** (`services/<nome>/`): contratto `GET /health`, `GET /info`, `POST /selftest` + le chiamate
+  del servizio in NDJSON. `GET /v1/services` è la somma degli `/info`.
+- **search + ask** in un solo worker leggero: porting ripensato di `search.py` e `ask.py`
+  (pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
+  controllate, «non trovo» senza chiamare il modello). Prompt in inglese, risposta nella lingua della
+  domanda.
+- **Ollama** `0.40.16` per digest, senza porta pubblicata e senza `container_name`; lo scarico della
+  VRAM dopo `IDLE_UNLOAD_MINUTES` lo fa Ollama col suo `keep_alive`.
+- **Interfaccia**: una pagina, HTML + JS senza build, chiaro/scuro, inglese/italiano, telefono.
+- **Documentazione**: `README.md` è l'indice; sezioni in `docs/`, la prima è `docs/quick-start.md`.
 
 ## Scelte prese come default (si cambiano se il maintainer dice di no)
 
 | Scelta | Default | Perché |
 |---|---|---|
-| search e ask | un solo worker leggero `services/search`, due voci nel catalogo | ask dipende da search, tutti e due chiamano solo Ollama |
-| Job | in memoria nel gateway, risultati su volume | basta alla fase 1; un riavvio perde i job in corso |
-| GPU | il compose di base chiede la GPU NVIDIA | è il requisito dichiarato; la CI usa worker finti |
-| Lingua di questa pagina | italiano | è il quaderno di lavoro; README e codice in inglese |
 | Nomi | repo `local-ai-core`, servizio compose `gateway`, OpenAPI «Local AI Core» | deciso dal maintainer il 2026-11-22 |
-| Licenza del codice | MIT | come da brief; licenze dei modelli nel README, una per una |
-| Brief di partenza | `PROMPT.md` fuori da git (`.gitignore`) | contiene percorsi e nomi privati |
+| search e ask | un solo worker, due voci nel catalogo | ask dipende da search, tutti e due parlano solo con Ollama |
+| Contratto dei worker | chiamate specifiche per servizio (`/search`, `/ask`, `/index`) invece di un `POST /run` generico | più leggibile; `/health`, `/info`, `/selftest` restano uguali per tutti |
+| Job | in memoria nel gateway (ultimi 200) | basta alla fase 1; un riavvio dimentica i job, i risultati dei collaudi restano su volume |
+| Collaudo | dentro ogni worker (`/selftest`), lanciato da `make collaudo`, dall'API e dalla pagina | lo stesso test vale in CI, a mano e dall'interfaccia |
+| Gateway e GPU | prenota la GPU solo con capacità `utility` | serve `nvidia-smi` per la barra di stato, zero VRAM |
+| Note di esempio | `examples/notes`, inventate, in inglese | default di `NOTES_DIR` e base del quick start |
+| Licenza del codice | MIT | da brief; licenze dei modelli in `docs/licenses.md` |
+| Brief di partenza | `PROMPT.md` fuori da git | contiene percorsi e nomi privati |
+| Nomi privati da cercare | in `.private-patterns`, fuori da git | scriverli nello script pubblico li pubblicherebbe |
+
+## Da fare prima della pubblicazione (fase 6)
+
+- **La cronologia git contiene un nome di persona** nei primi commit di questo file:
+  `scripts/grep-private.sh --history` lo mostra. Prima del push: ripartire da un commit unico pulito
+  (o riscrivere la cronologia) e rilanciare `--history`.
+- Verificare di nuovo una per una le licenze dei modelli e la fonte di ciascuna.
+- L'URL del repo nei documenti (`github.com/manzolo/local-ai-core`) esiste solo dopo la pubblicazione.
+- La CI di GitHub Actions non è ancora mai girata: la prima esecuzione sarà al primo push.
 
 ## Scelte aperte
 
 1. `documents → search → ask` sostituisce `ollapdf` e `PDF-Chatbot-Ollama-Langchain-Docker` o li
-   affianca? Si decide alla fase 2.
-2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova generato con
-   XTTS: da verificare alle fasi 4 e 5.
+   affianca? Si decide alla fine della fase 2.
+2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova: fasi 4 e 5.
 
-## Cosa manca
+## Note e trappole di questa sessione
 
-Tutto il codice. Le fasi sono quelle del brief: 1 scheletro con search + ask, 2 documenti,
-3 trascrizione e parlanti, 4 immagini, 5 voce e scrittura a mano, 6 rilascio (solo col sì del maintainer).
+- Due Ollama sulla stessa GPU (quello di famiglia con un modello in memoria + il nostro) rallentano molto
+  il primo caricamento: la prima risposta ha impiegato 90 s invece di 0,7 s. `docs/family.md` consiglia
+  l'override quando ollama-docker è acceso; lo script delle schermate fa una domanda di riscaldamento
+  prima di fotografare.
+- Ollama riporta l'avanzamento del download **per strato**: va sommato, altrimenti la barra dice
+  «0,9 / 0,9 GB» su un modello da 6,6.
+- FastAPI trasforma un'eccezione nella lettura del corpo in un `400`: il limite di dimensione intercetta
+  anche la risposta, così l'utente vede `413`.
+- I test locali sono girati con Python 3.14 (quello dell'host); le immagini e la CI usano 3.12.
+- Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
+  `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Fase 1. Criterio: `git clone && docker compose up -d`, poi
-`http://localhost:8090` risponde a una domanda citando le note di esempio.
+Fase 2: worker `documents` (Docling 2.151.1, TableFormer, RapidOCR torch, modelli in un volume) nel
+profilo `docs`; `POST /v1/documents/convert` come job; opzione per mandare il Markdown dritto
+nell'indice (catena documents → search → ask); bolletta finta rigenerata come prova, con una cifra
+alterata come errore introdotto; sezione `docs/services/documents.md`, passo nel quick start, schermate.
