@@ -1,6 +1,6 @@
 # Stato di local-ai-core
 
-Aggiornato: 2026-11-22 (sessione 1). **Fasi 1, 2 e 3 completate e collaudate. Prossima: fase 4, immagini (ComfyUI).**
+Aggiornato: 2026-11-22 (sessione 1). **Fasi 1-4 completate e collaudate. Prossima: fase 5, scrittura a mano e voce.**
 Repo su GitHub `manzolo/local-ai-core`, **pubblico dal 2026-11-22** (deciso dal maintainer), CI verde.
 Nome ed email del maintainer (anche come autore dei commit) sono pubblici di proposito: va tenuto fuori
 tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, documenti).
@@ -27,8 +27,16 @@ tutto il resto (strumenti e note personali, percorsi, macchine, lavoro, document
 - **Prova da zero completa** (2026-11-22): 0 volumi, clone pulito, quick start passi 3, 9, 10: Ollama
   scarica i modelli e indicizza in 134 s; collaudo con tutti i profili superato in 243 s, scaricando
   anche Docling, Whisper (2,9 GB) ed ECAPA.
-- **Test su CPU**: 47 test con Ollama, Docling, Whisper ed ECAPA finti (il raggruppamento dei parlanti
-  gira col codice scikit-learn vero), lint pulito, 17 mutazioni tutte colte.
+- **Immagini (fase 4)**, profilo `image`: ComfyUI v0.46.2 dietro un adattatore; SDXL base + LoRA
+  Lightning (1-2 s a modello caricato), RealESRGAN ×2/×4, scontorno BiRefNet. Collaudo interno 5/5 sul
+  vero (maschera non invertita colta). Modelli dalle fonti ufficiali, sha256 controllato.
+- **GPU condivisa, misurata sul vero**: un'immagine fa scaricare documenti, trascrittore e parlanti (che
+  si riavviano e tornano a 0 MiB); una domanda fa fermare ComfyUI (0 MiB) e risponde con la fonte.
+- **Prova da zero della fase 4** (commit `325c8b9`): 0 volumi, clone pulito, quick start passi 3 e 11,
+  collaudo superato in 416 s scaricando ~15 GB di modelli. La prima prova da zero aveva trovato un
+  esaurimento di memoria nello scontorno del collaudo: corretto (vedi trappole) prima del push.
+- **Test su CPU**: 68 test con Ollama, Docling, Whisper, ECAPA e ComfyUI finti (il ComfyUI finto esegue
+  i workflow con Pillow seguendo le regole dei nodi veri), lint pulito, 26 mutazioni tutte colte.
 - **CI su GitHub** verde (test, lint, mutazioni, privacy, compose e build delle immagini leggere).
 - **Schermate** in `docs/img/` (`make screenshots`), riguardate una per una: solo note di esempio.
 - Gateway e worker leggeri: immagini da ~140 MB; documenti ~7 GB e parlanti ~6,6 GB (PyTorch con CUDA
@@ -54,6 +62,13 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 - **transcriber** (profilo `transcribe`) e **speakers** (profilo `speakers`): due worker; il gateway
   li concatena nello stesso job di `/v1/transcribe` e compone testo, SRT e WebVTT. `expect` confronta la
   trascrizione con un testo atteso (somiglianza per parole, soglia 0,85).
+- **image** (profilo `image`): l'adattatore MIT avvia ComfyUI (GPL-3.0, non modificato, commit fissato)
+  come processo figlio su 127.0.0.1 e lo ferma dopo l'inattività o su `/unload`; fra lavori di tipo
+  diverso chiede a ComfyUI di scaricare i modelli. I PNG stanno in `gateway-data/results` e se ne vanno
+  col job (`GET /v1/jobs/{id}/file`).
+- **VRAM**: `ensure_vram` prima di ogni job GPU (ask e collaudi compresi) libera Ollama (tranne il
+  modello che serve) e chiede `/unload` agli altri worker; un worker GPU che si scarica **esce** e
+  Docker lo riavvia pulito (`RESTART_TO_FREE_VRAM`), il gateway aspetta fino a 30 s un worker in riavvio.
 - **search + ask** in un solo worker leggero: porting ripensato di `search.py` e `ask.py`
   (note + libreria, la libreria col prefisso `library/`; pezzi ai titoli, indice float32 incrementale per sha1, indice incoerente rifiutato, citazioni
   controllate, «non trovo» senza chiamare il modello). Prompt in inglese, risposta nella lingua della
@@ -81,6 +96,9 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 | Bolletta di prova | nuova, inventata, in inglese (`examples/documents/invoice.html`), PDF e «scansione» generati da `scripts/make-fixtures.sh` | il brief chiede di rigenerarla |
 | Documenti nella libreria | stesso nome = sostituito; un file di note chiamato `library/…` si confonderebbe col prefisso | semplice; documentato |
 | Lingua OCR | una per richiesta, default `en` | RapidOCR ne regge una alla volta |
+| Checkpoint immagini | SDXL base 1.0 ufficiale, non Juggernaut | Juggernaut nel coltellino arrivava da un mirror senza licenza; `IMAGE_CHECKPOINT` per cambiarlo |
+| RealESRGAN | dalla release ufficiale su GitHub (BSD-3) | il mirror del coltellino dichiarava «other» |
+| Liberare VRAM | fermare il processo (ComfyUI) o riavviare il container (gli altri) | `/free` e `empty_cache` lasciano contesto CUDA e cache: misurati 0,3-1 GB per worker |
 
 ## Da fare prima della pubblicazione (fase 6)
 
@@ -93,7 +111,7 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
 1. Deciso col maintainer il 2026-11-22: PDF-Chatbot-Ollama-Langchain-Docker **archiviato**, sostituito
    da local-ai-core (nota in testa al suo README); **ollapdf affiancato** (chat Streamlit + LangChain),
    da rivalutare dopo qualche settimana d'uso. README di local-ai-lab aggiornato, topic `local-ai` messo.
-2. Licenze dei checkpoint immagine (SDXL, Juggernaut, LoRA Lightning) e dell'audio di prova: fasi 4 e 5.
+2. Licenza di XTTS (fase 5): solo uso non commerciale, profilo a parte spento di default.
 
 ## Note e trappole di questa sessione
 
@@ -124,13 +142,22 @@ browser ──► gateway (FastAPI, 127.0.0.1:8090) ──► worker search ─�
   invece di contarlo con `grep -c`: una prova «da zero» è sembrata riuscita su container vecchi.
 - Lo strato PyTorch è condiviso solo se le righe del Dockerfile fino a `pip install -r torch.txt` sono
   identiche in documents e speakers: l'`ARG DEBIAN_SNAPSHOT` va dopo.
+- **Esaurimento di memoria nello scontorno**: con SDXL ancora in ComfyUI e bge-m3 in Ollama, BiRefNet
+  (che lavora a 1024×1024) non ci stava. Era passato nella prima prova solo perché la GPU era più vuota:
+  l'ha trovato la prova da zero. Rimedi: `/free` di ComfyUI fra lavori di tipo diverso, e `ensure_vram`
+  anche nei collaudi.
+- Docker non applica il riavvio a `docker compose down`: un worker uscito per liberare VRAM riparte solo
+  per `restart: unless-stopped`.
+- `Literal[2, 4]` di FastAPI non converte i valori dei form (`"4"`): usare un intero con limiti.
+- Il visualizzatore di immagini dell'agente ignora l'alfa: la trasparenza si misura sui pixel.
 - Il volume `local-ai-core_ollama` tiene i modelli dell'Ollama interno (~8 GB) anche a stack spento:
   `docker compose down -v` lo toglie.
 
 ## Prossimo passo
 
-Fase 4: ComfyUI v0.46.2 come worker (profilo `image`) dietro un adattatore con lo stesso contratto;
-workflow JSON nel repo; `/v1/images/generate` (SDXL + LoRA Lightning a 4 passi), `/upscale` (RealESRGAN
-×2/×4), `/cutout` (BiRefNet, maschera invertita per JoinImageWithAlpha). **Prima di scegliere il
-checkpoint di default verificare le licenze** (Juggernaut XL, SDXL base, LoRA Lightning, RealESRGAN,
-BiRefNet). Qui la coda GPU lavora sul serio: ComfyUI ~8 GB non convive con l'LLM caricato.
+Fase 5: `handwriting` (profilo `handwriting`): `qwen3-vl:8b-instruct` su Ollama, mai la variante
+thinking; `POST /v1/handwriting`; foto di prova sintetiche (scrittura generata, niente appunti veri).
+`voice` (profilo `voice`, **spento di default**): XTTS-v2 (coqui-tts 0.27.5), **solo uso non
+commerciale** (Coqui Public Model License) scritto nel README, nel catalogo e nella pagina; testi lunghi
+a pezzi, numeri in lettere, riascolto col trascrittore; solo voci pronte del modello, nessun campione
+personale. Verificare prima le licenze (qwen3-vl Apache-2.0 già vista).
